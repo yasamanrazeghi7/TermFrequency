@@ -6,17 +6,6 @@ window_size = 5
 time_stamp = "second|minute|hour|day|month|week|year|decade"
 from_navid = r'((?:[^\s]+\s*){{0,{0}}}(?:\s+|^)\bminutes\b(?:\s+|$)(?:[^\s]+\s*){{0,{0}}})'
 
-
-class NumCounter:
-    def __init__(self, window_size: int):
-        self.window_size = window_size
-
-    def word_num_occurrence(self, word_re_query: str, num_re_query: str, num_count: int):
-        pass
-
-    def num_co_occurrence(self, num_re_query: str, num_count: int):
-        pass
-
 ##########################################################################################
 #########################################################################################
 # these can be eventually be loaded from a file
