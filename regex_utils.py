@@ -7,6 +7,16 @@ time_stamp = "second|minute|hour|day|month|week|year|decade"
 from_navid = r'((?:[^\s]+\s*){{0,{0}}}(?:\s+|^)\bminutes\b(?:\s+|$)(?:[^\s]+\s*){{0,{0}}})'
 
 
+class NumCounter:
+    def __init__(self, window_size: int):
+        self.window_size = window_size
+
+    def word_num_occurrence(self, word_re_query: str, num_re_query: str, num_count: int):
+        pass
+
+    def num_co_occurrence(self, num_re_query: str, num_count: int):
+        pass
+
 ##########################################################################################
 #########################################################################################
 # these can be eventually be loaded from a file
@@ -17,6 +27,7 @@ re_patterns = [
 ]
 pattern_finder = lambda x: re.compile("|".join(re_pattern.format(time_stamp) for re_pattern in re_patterns),
                                       re.IGNORECASE).findall(x)  # this must match all the patterns including timestamp
+
 
 def co_finder(x):  # this should prepare the keys as tuples and triplets with time_stamps from the pattern_finder
     this_time_stamp = ""
@@ -39,7 +50,8 @@ def co_finder(x):  # this should prepare the keys as tuples and triplets with ti
     return result
 
 ################################################################################
-#todo test this with re.compile(pattern).findall(text)
+# todo test this with re.compile(pattern).findall(text)
+
 
 def find_word_in_ws(ws, word, text):
     UNUSED_TOKENS = " _____ " * (ws+1)
@@ -50,6 +62,7 @@ text = "1 second 3 4 5 6 7 8 9 10  10:12 3.2     !!!!! 11  1234567  minUte 1 768
 
 
 print("\n".join(str(x) for x in find_word_in_ws(5, "minute|second", text)))
+
 
 def text_window_slider(text: str, window_size: int):
     ret_list = []
@@ -70,6 +83,7 @@ def surrounding_search(text: str, window_size: int, regex_search_query: str):
             continue
         ret_list.append(window)
     return ret_list
+
 
 def create_tuples(window, key_words_regex, window_size=5, digit_limit=6):
     #check the middle word should be one of the keywords
@@ -93,6 +107,29 @@ def create_tuples(window, key_words_regex, window_size=5, digit_limit=6):
                 # yield (min(word, word2), max(word, word2), keyword[0].lower())
     return list_of_tuples
 
+
+# def create_tuples(text, key_words_regex, window_size=5, digit_limit=6):
+#     list_of_tuples = []
+#     for window in surrounding_search(text, window_size, key_words_regex):
+#         #check the middle word should be one of the keywords
+#         middle = window[len(window) // 2]
+#         keyword = re.compile(key_words_regex, re.IGNORECASE).findall(middle)
+#         keyword = ["".join(x) for x in keyword]
+#         print(keyword)
+#         assert len(keyword)==1 # window should contain the word
+#         # reg = re.compile(r'\b\d{{1,{0}}}\b'.format(digit_limit))
+#         reg = re.compile(r'^\d{{1,{0}}}$'.format(digit_limit))
+#         print(reg)
+#         for i, word in enumerate(window):
+#             if word == None:
+#                 continue
+#             for j, word2 in enumerate(window[i+1:]):
+#                 if j-i>window_size or word2==None:
+#                     break
+#                 if reg.match(word)!=None and reg.match(word2)!=None:
+#                     list_of_tuples.append((min(word, word2), max(word, word2), keyword[0].lower()))
+#                     # yield (min(word, word2), max(word, word2), keyword[0].lower())
+#     return list_of_tuples
 
 
 
