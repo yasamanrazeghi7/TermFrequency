@@ -31,6 +31,8 @@ def preprocess_dataset(bucket_name: str,
         for middle, window in surrounding_search(data_line['text'], window_size, num_query):
             new_data = {"meta": data_line["meta"], "text": " ".join(window), "middle": middle}
             data_lines.append(json.dumps(new_data))
+        if (i + 1) % 10_000 == 0 and verbose > 0:
+            print(f"Line: {i+1}, Elapsed Time: {(time.time() - start_time)}s, Waiting for file {file_counter}, data_lines {len(data_lines)}...")
         if len(data_lines) >= max_file_lines:
             if verbose > 0:
                 print(f"Elapsed Time: {(time.time() - start_time)}s, Dumping file {file_counter}...")
@@ -50,15 +52,15 @@ if __name__ == "__main__":
         print("Missing arguments")
     input_file = sys.argv[1]
     input_file_name = input_file.split("/")[-1]
-    output_file = f"pile/Processed/{input_file_name}"
+    output_file = f"pile/new_processed/{input_file_name}"
     bucket_name = 'pilebucketyasaman'
     window_size = 5
     digit_limit = 6
-    max_file_lines = 1_000_000
+    max_file_lines = 10_000_000
     preprocess_dataset(bucket_name=bucket_name,
                        input_file=input_file,
                        output_file=output_file,
                        window_size=window_size,
                        digit_limit=digit_limit,
-                       max_file_lines=window_size,
+                       max_file_lines=max_file_lines,
                        verbose=1)

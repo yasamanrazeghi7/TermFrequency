@@ -7,5 +7,6 @@ for CLUSTER_ID in $CLUSTER_IDS
 do
   echo "Terminating cluster $CLUSTER_ID"
   aws emr terminate-clusters --cluster-id "$CLUSTER_ID"
+  sleep 3
 done
 echo "Done!"

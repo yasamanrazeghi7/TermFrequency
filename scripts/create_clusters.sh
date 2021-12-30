@@ -11,7 +11,7 @@ for (( c=1; c<=$CLUSTER_COUNT; c++ ))
 do
   echo "Create cluster $c..."
 	$BASE/create_single_cluster.sh "$CLUSTER_PREFIX"_$c $CLUSTER_INFO_FILE > $LOG_DIR/create_logs_$c.txt &
-	sleep 1
+	sleep 5
 done
 
 FAIL=0
