@@ -3,7 +3,8 @@ import codecs
 import boto3
 import json
 import time
-from num_counter import surrounding_search, SimpleNumCounter
+from utils import surrounding_search
+from num_counter import OriginalNumCounter
 
 
 def preprocess_dataset(bucket_name: str,
@@ -19,7 +20,7 @@ def preprocess_dataset(bucket_name: str,
 
     if output_file.endswith(".jsonl"):
         output_file = output_file[:-len(".jsonl")]
-    num_query = SimpleNumCounter(digit_limit=digit_limit).num_query
+    num_query = OriginalNumCounter(digit_limit=digit_limit).num_query
     s3 = boto3.resource('s3')
     s3_object = s3.Object(bucket_name, input_file)
     line_stream = codecs.getreader("utf-8")
@@ -50,6 +51,7 @@ def preprocess_dataset(bucket_name: str,
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Missing arguments")
+        exit()
     input_file = sys.argv[1]
     input_file_name = input_file.split("/")[-1]
     output_file = f"pile/new_processed/{input_file_name}"
