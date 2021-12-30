@@ -1,6 +1,6 @@
+import sys
 import codecs
 import boto3
-import re
 import json
 import time
 from num_counter import surrounding_search, SimpleNumCounter
@@ -43,3 +43,22 @@ def preprocess_dataset(bucket_name: str,
         file_counter += 1
     if verbose > 0:
         print(f"--- Finished in {time.time() - start_time} seconds, Created {file_counter} files ---")
+
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Missing arguments")
+    input_file = sys.argv[1]
+    input_file_name = input_file.split("/")[-1]
+    output_file = f"pile/Processed/{input_file_name}"
+    bucket_name = 'pilebucketyasaman'
+    window_size = 5
+    digit_limit = 6
+    max_file_lines = 1_000_000
+    preprocess_dataset(bucket_name=bucket_name,
+                       input_file=input_file,
+                       output_file=output_file,
+                       window_size=window_size,
+                       digit_limit=digit_limit,
+                       max_file_lines=window_size,
+                       verbose=1)
