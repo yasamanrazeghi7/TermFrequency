@@ -252,3 +252,4 @@ cython_debug/
 
 # Logs created by AWS pipeline
 scripts/Logs/
+scripts/ClusterInfo.txt
