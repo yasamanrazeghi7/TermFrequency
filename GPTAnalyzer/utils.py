@@ -2,6 +2,14 @@ import codecs
 import boto3
 
 
+def read_from_file(path: str) -> str:
+    result = ""
+    with open(path) as f:
+        for line in f.readlines():
+            result += line
+    return result
+
+
 def read_from_s3(s3_path: str = "", bucket_name: str = "", input_file: str = "") -> str:
     if len(s3_path) > 0:
         if not s3_path.startswith("s3://"):
