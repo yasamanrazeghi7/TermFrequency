@@ -2,7 +2,7 @@ import unittest
 from regex_utils import *
 
 
-class TestAddFishToAquarium(unittest.TestCase):
+class TestPatternFinder(unittest.TestCase):
 
     def test1(self):
         string_test = "987 MinuTes 78 927 9876"
@@ -83,6 +83,15 @@ class TestAddFishToAquarium(unittest.TestCase):
         expected = [('', '', '', '', '1 months !!! 3 ', 'month')]
         self.assertCountEqual(actual, expected)
         # print([co_finder(x) for x in actual])
+
+    def test_window_1(self):
+        window_size = 5
+        time_stamp = "minute"
+        text = "1 2 3 4 5 6 7 8 9 10 11    minutes 1 768 minute 0909 653 725 alaki @     776"
+        print(find_word_in_ws(window_size, time_stamp, text))
+        actual = find_word_in_ws(window_size, time_stamp, text)
+        expected = ['23 minutes 768 second 0909 653 725']
+        self.assertCountEqual(actual, expected)
 
 
 
