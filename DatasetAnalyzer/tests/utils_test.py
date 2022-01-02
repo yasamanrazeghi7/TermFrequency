@@ -1,5 +1,4 @@
 import unittest
-from utils import *
 
 
 # This function should get a text split it and give a sliding window of should be good at split, whitespaced

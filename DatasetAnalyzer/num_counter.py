@@ -1,7 +1,7 @@
 from itertools import combinations
 from typing import List
 import re
-from utils import surrounding_search
+from DatasetAnalyzer.utils import surrounding_search
 
 
 class NumCounter:

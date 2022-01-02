@@ -14,7 +14,8 @@ In  `scripts/run_pipeline.sh` script assign
 - ``CLUSTER_PREFIX``
 - ``RUN_RANGE_FILE``
 - ``CLEANUP_FILE`` 
-
+ 
+to run the code, you need to change directory to `scripts` then run the scripts.
 ## tests
 to run the unit tests
 python -m unittest regex_unit_test.py 

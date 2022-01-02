@@ -251,5 +251,5 @@ cython_debug/
 # End of https://www.toptal.com/developers/gitignore/api/python,pycharm
 
 # Logs created by AWS pipeline
-scripts/Logs/
-scripts/ClusterInfo.txt
+DatasetAnalyzer/scripts/Logs/
+DatasetAnalyzer/scripts/ClusterInfo.txt

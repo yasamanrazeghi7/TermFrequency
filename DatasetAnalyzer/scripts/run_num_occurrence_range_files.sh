@@ -14,9 +14,9 @@ for i in `seq -w $BEGIN_INDEX $END_INDEX`; do
   echo "Running counting num in file $file_index"
   ## assign input outputs of the code
   input_file_pattern="s3://pilebucketyasaman/pile/new_processed/${file_index}_*.jsonl" #_* runs all for test on small files replace with _0
-  output_folder="s3://pilebucketyasaman/results/num_1_counting/${file_index}/"
+  output_folder="s3://pilebucketyasaman/results/num_2_counting/${file_index}/"
   window_size=5
-  num_count=1
+  num_count=2
   ## run the code remotely with inputs
   ssh  -i $PEM_FILE $ADDR "spark-submit ~/SparkScripts/num_occurrence.py '$input_file_pattern' '$output_folder' $window_size $num_count"
 done
