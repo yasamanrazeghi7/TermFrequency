@@ -2,6 +2,12 @@ import codecs
 import boto3
 
 
+def chunks(lst, n):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
+
+
 def read_from_file(path: str) -> str:
     result = ""
     with open(path) as f:

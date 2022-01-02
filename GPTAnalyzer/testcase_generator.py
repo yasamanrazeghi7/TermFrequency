@@ -1,10 +1,11 @@
 from typing import Callable, Any, List, Tuple
+import math
 import random
 import argparse
 import logging
 import torch
 from transformers import GPT2Tokenizer, GPT2LMHeadModel, GPTJForCausalLM, AutoTokenizer, GPTNeoForCausalLM
-from utils import read_from_s3, read_from_file
+from utils import read_from_s3, read_from_file, chunks
 
 
 logger = logging.getLogger(__name__)
@@ -179,16 +180,18 @@ def testcase_generator(train_datapoints: List[DataPoint], test_datapoints: List[
 
 
 def GPTJ_Analysis(model, tokenizer, device, batch_size: int, testcases: List[TestCase]) -> List[TestCaseResult]:
-    testcases_bodies = [x.body for x in testcases]
-    input_ids = tokenizer.batch_encode_plus(testcases_bodies, padding=True, return_tensors='pt').to(device)
-    with torch.no_grad():
-        generated_ids = model.generate(input_ids=input_ids['input_ids'], attention_mask=input_ids['attention_mask'],
-                                       max_length=5 + len(input_ids['input_ids'][0]), do_sample=False, min_length=2)
-    generated_texts = tokenizer.batch_decode(
-        generated_ids, skip_special_tokens=True)
-    generated_answers = [x[len(testcases_bodies[i])+1:].split()[0] for i, x in enumerate(generated_texts)]
-    testcase_results = [TestCaseResult(tc, ans, ans.strip() == tc.data_point.answer.strip()) for (tc, ans) in zip(testcases, generated_answers)]
-    return testcase_results
+    results = []
+    for testcase_chunk in chunks(testcases, batch_size):
+        testcases_bodies = [x.body for x in testcase_chunk]
+        input_ids = tokenizer.batch_encode_plus(testcases_bodies, padding=True, return_tensors='pt').to(device)
+        with torch.no_grad():
+            generated_ids = model.generate(input_ids=input_ids['input_ids'], attention_mask=input_ids['attention_mask'],
+                                           max_length=5 + len(input_ids['input_ids'][0]), do_sample=False, min_length=2)
+        generated_texts = tokenizer.batch_decode(
+            generated_ids, skip_special_tokens=True)
+        generated_answers = [x[len(testcases_bodies[i])+1:].split()[0] for i, x in enumerate(generated_texts)]
+        results.extend([TestCaseResult(tc, ans, ans.strip() == tc.data_point.answer.strip()) for (tc, ans) in zip(testcase_chunk, generated_answers)])
+    return results
 
 
 def setup_model(device, model_name: str) -> (Any, Any):
