@@ -66,7 +66,7 @@ def aggregate_by_key(results: List[TestCaseResult]) -> List:
     for key_freq in total_map.keys():
         ag_result.append({"Key": key_freq[0], "Frequency": key_freq[1], "#Correct": correct_map[key_freq],
                           "#Total": total_map[key_freq], "Accuracy": correct_map[key_freq] / total_map[key_freq]})
-        return ag_result
+    return ag_result
 
 def main(args):
     # -------------- Setup -------------
