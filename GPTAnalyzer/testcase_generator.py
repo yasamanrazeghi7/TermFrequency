@@ -1,14 +1,20 @@
 from typing import Callable, Any, List, Tuple
+import json
 import math
 import random
 import argparse
 import logging
+from pandas.io.json import json_normalize
 import torch
 from transformers import GPT2Tokenizer, GPT2LMHeadModel, GPTJForCausalLM, AutoTokenizer, GPTNeoForCausalLM
 from utils import read_from_s3, read_from_file, chunks
 
-
 logger = logging.getLogger(__name__)
+
+
+class MyEncoder(json.JSONEncoder):
+    def default(self, o):
+        return o.__dict__
 
 
 class RawFrequencyData:
@@ -58,7 +64,8 @@ class Num1MultiplyFactory(CompleteFrequencyFactory):
         result = []
         x = int(raw_frequency_data.key[0])
         for multiplicand in self.multiplicands:
-            complete_data = CompleteFrequencyData(str(x), str(multiplicand), str(x*multiplicand), 'times', '*', raw_frequency_data)
+            complete_data = CompleteFrequencyData(str(x), str(multiplicand), str(x * multiplicand), 'times', '*',
+                                                  raw_frequency_data)
             result.append(complete_data)
         return result
 
@@ -71,6 +78,7 @@ class DataPoint:
 
     def __str__(self):
         return f"({self.question}, {self.answer}, {self.frequency_data})"
+
 
 # ------- Start Filters -----------
 
@@ -87,6 +95,7 @@ class DigitLimitFilter(FrequencyDataFilter):
     def is_valid(self, complete_frequency_data: CompleteFrequencyData) -> bool:
         return len(complete_frequency_data.x) <= self.digit_limit and len(complete_frequency_data.y) <= self.digit_limit
 
+
 # ------- End Filters -----------
 
 # ------- Start Templates -----------
@@ -102,6 +111,8 @@ class MultiplyTemplate(FrequencyDataTemplate):
         question = "What is {0} times {1}?".format(complete_frequency_data.x, complete_frequency_data.y)
         answer = complete_frequency_data.z
         return DataPoint(question, answer, complete_frequency_data)
+
+
 # ------- End Templates -----------
 
 
@@ -171,11 +182,12 @@ class TestCaseTemplate:
 
 
 def testcase_splitter(datapoints: List[DataPoint], shots_number: int) -> (List[DataPoint], List[DataPoint]):
-    train_set, test_set = torch.utils.data.random_split(datapoints, [shots_number, len(datapoints)-shots_number])
+    train_set, test_set = torch.utils.data.random_split(datapoints, [shots_number, len(datapoints) - shots_number])
     return (list(train_set), list(test_set))
 
 
-def testcase_generator(train_datapoints: List[DataPoint], test_datapoints: List[DataPoint], template: TestCaseTemplate) -> List[TestCase]:
+def testcase_generator(train_datapoints: List[DataPoint], test_datapoints: List[DataPoint],
+                       template: TestCaseTemplate) -> List[TestCase]:
     return [template.generate_testcase(train_datapoints, test_datapoint) for test_datapoint in test_datapoints]
 
 
@@ -187,10 +199,10 @@ def GPTJ_Analysis(model, tokenizer, device, batch_size: int, testcases: List[Tes
         with torch.no_grad():
             generated_ids = model.generate(input_ids=input_ids['input_ids'], attention_mask=input_ids['attention_mask'],
                                            max_length=5 + len(input_ids['input_ids'][0]), do_sample=False, min_length=2)
-        generated_texts = tokenizer.batch_decode(
-            generated_ids, skip_special_tokens=True)
-        generated_answers = [x[len(testcases_bodies[i])+1:].split()[0] for i, x in enumerate(generated_texts)]
-        results.extend([TestCaseResult(tc, ans, ans.strip() == tc.data_point.answer.strip()) for (tc, ans) in zip(testcase_chunk, generated_answers)])
+        generated_texts = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
+        generated_answers = [x[len(testcases_bodies[i]) + 1:].split()[0] for i, x in enumerate(generated_texts)]
+        for (tc, ans) in zip(testcase_chunk, generated_answers):
+            results.extend([TestCaseResult(tc, ans, ans.strip() == tc.data_point.answer.strip())])
     return results
 
 
@@ -220,18 +232,18 @@ def main(args):
     else:
         device = torch.device('cuda', args.local_rank)
     logger.info(f"Device is detected as {device}!")
-    model, tokenizer= setup_model(device, args.model)
+    model, tokenizer = setup_model(device, args.model)
     logger.info("Model is loaded!")
     # -------------------
     input_path = args.input_path
-    random.seed(args.seed) # TODO: set all
+    random.seed(args.seed)  # TODO: set all
     torch.manual_seed(args.seed)
     # Read from aggregated results
     logger.debug(f"The input path is '{input_path}'")
     # my_file = read_from_s3(s3_path=input_path)
     my_file = read_from_file(input_path)
     # key_parser = lambda key: key
-    complete_frequency_factory = Num1MultiplyFactory(list(range(1,21)))
+    complete_frequency_factory = Num1MultiplyFactory(list(range(1, 21)))
     frequency_data = []
     for line in my_file.split("\n")[:args.top]:
         key, frequency = eval(line)
@@ -260,12 +272,18 @@ def main(args):
     logger.debug("A sample of train data points:")
     logger.debug("\n------\n".join(x.body for x in testcases[:3]))
     results = GPTJ_Analysis(model, tokenizer, device, args.bs, testcases)
-    print(f"Finished: {len(results)} test case is analyzed!")
+    logger.info(f"Finished: {len(results)} test case is analyzed!")
+    json_results = MyEncoder().encode(results)
+    flatten_json_result = json_normalize(json.loads(json_results))
+    flatten_json_result.to_csv(args.output_path)
+    logger.info(f"The final result is written in '{args.output_path}'")
+
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--input-path', type=str, help="The s3 or local path to the aggregated result")
+    parser.add_argument('--input-path', type=str, required=True, help="The s3 or local path to the aggregated result")
+    parser.add_argument('--output-path', type=str, required=True, help="The local path to write the output")
     parser.add_argument('--seed', type=int, default=1234)
     parser.add_argument('--bs', type=int, default=20, help="Batch size")
     parser.add_argument('--shots', type=int, default=2)
@@ -282,7 +300,4 @@ if __name__ == "__main__":
         level = logging.INFO
     logging.basicConfig(level=level)
 
-
     main(args)
-
-
