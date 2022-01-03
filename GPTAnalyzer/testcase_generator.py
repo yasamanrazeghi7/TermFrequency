@@ -1,16 +1,18 @@
 from typing import Any, List
+from collections import defaultdict
 import json
 import math
 import random
 import argparse
 import logging
-from pandas import json_normalize
+from pandas import json_normalize, DataFrame
 import torch
 from transformers import GPTJForCausalLM, AutoTokenizer, GPTNeoForCausalLM
 from utils import read_file, chunks
 from frequency_data_utils import Num1MultiplyFactory, Num2MultiplyFactory, DayNum1ConvertFactory
 from datapoint_utils import DataPointGenerator, DigitLimitFilter, MultiplyTemplate, Day1Template
 from testcase_utils import TestCase, TestCaseResult, TestCaseTemplate, testcase_generator
+
 logger = logging.getLogger(__name__)
 
 
@@ -51,6 +53,20 @@ def GPTJ_Analysis(model, tokenizer, device, batch_size: int, testcases: List[Tes
             results.extend([TestCaseResult(tc, ans, ans.strip() == tc.data_point.answer.strip())])
     return results
 
+
+def aggregate_by_key(results: List[TestCaseResult]) -> List:
+    total_map = defaultdict(int)
+    correct_map = defaultdict(int)
+    for result in results:
+        key_freq = (result.testcase.data_point.frequency_data.key, result.testcase.data_point.frequency_data.frequency)
+        total_map[key_freq] += 1
+        if result.is_correct:
+            correct_map[key_freq] += 1
+    ag_result = []
+    for key_freq in total_map.keys():
+        ag_result.append({"Key": key_freq[0], "Frequency": key_freq[1], "#Correct": correct_map[key_freq],
+                          "#Total": total_map[key_freq], "Accuracy": correct_map[key_freq] / total_map[key_freq]})
+        return ag_result
 
 def main(args):
     # -------------- Setup -------------
@@ -109,15 +125,21 @@ def main(args):
     logger.info(f"Finished: {len(results)} test case is analyzed!")
     # ----------------------------------
     # --------  Write outputs  ---------
+    # All Result
     json_results = MyEncoder().encode(results)
     flatten_json_result = json_normalize(json.loads(json_results))
     flatten_json_result.to_csv(args.output_path)
+    # Aggregated Result
+    ag_file_path = args.output_path.split(".")
+    ag_file_path.insert(-1, "agg")
+    ag_file_path = ".".join(ag_file_path)
+    DataFrame(aggregate_by_key(results)).to_csv(ag_file_path)
     logger.info(f"The final result is written in '{args.output_path}'")
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--input-path', type=str, required=True, help="The s3 or local path to the aggregated result")
+    parser.add_argument('--input-path', type=str, required=True,
+                        help="The s3 or local path to the aggregated result")
     parser.add_argument('--output-path', type=str, required=True, help="The local path to write the output")
     parser.add_argument('--factory-type', type=str, default="Num1")
     parser.add_argument('--dp-template', type=str, default="Mult")
