@@ -7,10 +7,15 @@ import argparse
 import logging
 from pandas import json_normalize, DataFrame
 import torch
+import os.path
+from os import path
+
 from transformers import GPTJForCausalLM, AutoTokenizer, GPTNeoForCausalLM
-from utils import read_file, chunks
-from frequency_data_utils import Num1MultiplyFactory, Num2MultiplyFactory, DayNum1ConvertFactory
-from datapoint_utils import DataPointGenerator, DigitLimitFilter, MultiplyTemplate, Day1Template
+
+
+import utils
+import frequency_data_utils
+from datapoint_utils import DataPointGenerator, DigitLimitFilter
 from testcase_utils import TestCase, TestCaseResult, TestCaseTemplate, testcase_generator
 
 logger = logging.getLogger(__name__)
@@ -41,12 +46,12 @@ def setup_model(device, model_name: str) -> (Any, Any):
 
 def GPTJ_Analysis(model, tokenizer, device, batch_size: int, testcases: List[TestCase]) -> List[TestCaseResult]:
     results = []
-    for testcase_chunk in chunks(testcases, batch_size):
+    for testcase_chunk in utils.chunks(testcases, batch_size):
         testcases_bodies = [x.body for x in testcase_chunk]
         input_ids = tokenizer.batch_encode_plus(testcases_bodies, padding=True, return_tensors='pt').to(device)
         with torch.no_grad():
             generated_ids = model.generate(input_ids=input_ids['input_ids'], attention_mask=input_ids['attention_mask'],
-                                           max_length=5 + len(input_ids['input_ids'][0]), do_sample=False, min_length=2)
+                                           max_length=5 + len(input_ids['input_ids'][0]), do_sample=False, min_length=2) #TODO think about the max len
         generated_texts = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
         generated_answers = [x[len(testcases_bodies[i]) + 1:].split()[0] for i, x in enumerate(generated_texts)]
         for (tc, ans) in zip(testcase_chunk, generated_answers):
@@ -69,28 +74,33 @@ def aggregate_by_key(results: List[TestCaseResult]) -> List:
     return ag_result
 
 def main(args):
-    # -------------- Setup -------------
+    # -------------- Setup model-------------
     if args.local_rank == -1:
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     else:
         device = torch.device('cuda', args.local_rank)
     logger.info(f"Device is detected as {device}!")
     model, tokenizer = setup_model(device, args.model)
-    random.seed(args.seed)  # TODO: set all
-    torch.manual_seed(args.seed)
     logger.info("Model is loaded!")
+
+    #check output file
+    if path.exists(args.output_path) and args.overwrite:
+        logger.info("overwrites the output file")
+        open(args.output_path, 'w').close()
+    elif path.exists(args.output_path) and args.append_output:
+        logger.info(f"appending the results is {args.output_path}")
+    elif not path.exists(args.output_path):
+        open(args.output_path, 'w').close()
+        logger.info(f"appending the results is {args.output_path}")
+    else:
+        assert False, 'output file exists, put --overwrite or --append_output'
+
     # ----------------------------------
     # ----- Read frequency data  -------
-    complete_frequency_factory = Num1MultiplyFactory(list(range(1, 21)))
-    if args.factory_type == "Num1":
-        complete_frequency_factory = Num1MultiplyFactory(list(range(1, 21)))
-    elif args.factory_type == "Num2":
-        complete_frequency_factory = Num2MultiplyFactory()
-    elif args.factory_type == "Day1":
-        complete_frequency_factory = DayNum1ConvertFactory()
+    complete_frequency_factory = frequency_data_utils.create_complete_frequency_factory(args.factory_type)
     input_path = args.input_path
     logger.debug(f"The input path is '{input_path}'")
-    my_file = read_file(input_path)
+    my_file = utils.read_frequency_file(input_path)
     frequency_data = []
     for line in my_file.split("\n")[:args.top]:
         key, frequency = eval(line)
@@ -98,53 +108,62 @@ def main(args):
     logger.info(f"Reading is done! Total Complete Frequency Data: {len(frequency_data)}")
     logger.debug("A sample of complete frequency data:")
     logger.debug("\n".join(str(x) for x in frequency_data[:40]))
-    # ----------------------------------
-    # -----  Generate DataPoints  ------
-    datapoint_generator = DataPointGenerator()
-    datapoint_generator.add_filter(DigitLimitFilter(2))
-    if args.dp_template == "Mult":
-        datapoint_generator.add_template(MultiplyTemplate())
-    elif args.dp_template == "Day1":
-        datapoint_generator.add_template(Day1Template())
-    else:
-        datapoint_generator.add_template(MultiplyTemplate())
-    datapoints = datapoint_generator.generate(frequency_data)
-    logger.info(f"Generated {len(datapoints)} data points!")
-    logger.debug("A sample of data points:")
-    logger.debug("\n".join(str(x) for x in datapoints[:40]))
-    # ----------------------------------
-    # -----  Generate TestCases  -------
-    testcase_template = TestCaseTemplate("Q:", "A:", "Calculate the math question below:")
-    testcases = testcase_generator(datapoints, testcase_template, args.shots)
-    logger.info(f"Generated {len(testcases)} Test Cases!")
-    logger.debug("A sample of test cases:")
-    logger.debug("\n------\n".join(x.body for x in testcases[:3]))
-    # ----------------------------------
-    # --------  GPTJ Analysis  ---------
-    results = GPTJ_Analysis(model, tokenizer, device, args.bs, testcases)
-    logger.info(f"Finished: {len(results)} test case is analyzed!")
-    # ----------------------------------
-    # --------  Write outputs  ---------
-    # All Result
-    json_results = MyEncoder().encode(results)
-    flatten_json_result = json_normalize(json.loads(json_results))
-    flatten_json_result.to_csv(args.output_path)
-    # Aggregated Result
-    ag_file_path = args.output_path.split(".")
-    ag_file_path.insert(-1, "agg")
-    ag_file_path = ".".join(ag_file_path)
-    DataFrame(aggregate_by_key(results)).to_csv(ag_file_path)
-    logger.info(f"The final result is written in '{args.output_path}'")
+
+    for i in range(args.number_of_seeds):
+        utils.set_seed(i)
+
+        # ----------------------------------
+        # -----  Generate DataPoints  ------
+        datapoint_generator = DataPointGenerator()
+        datapoint_generator.add_filter(DigitLimitFilter(2))
+        datapoint_generator.add_template(args.factory_type)
+        # if args.dp_template == "Mult":
+        #     datapoint_generator.add_template(MultiplyTemplate())
+        # elif args.dp_template == "Day1":
+        #     datapoint_generator.add_template(Day1Template())
+        # else:
+        #     datapoint_generator.add_template(MultiplyTemplate())
+        datapoints = datapoint_generator.generate(frequency_data)
+        logger.info(f"Generated {len(datapoints)} data points!")
+        logger.debug("A sample of data points:")
+        logger.debug("\n".join(str(x) for x in datapoints[:40]))
+        # ----------------------------------
+        # -----  Generate TestCases  -------
+        testcase_template = TestCaseTemplate("Q:", "A:", None)
+        testcases = testcase_generator(datapoints, testcase_template, args.shots)
+        logger.info(f"Generated {len(testcases)} Test Cases!")
+        logger.debug("A sample of test cases:")
+        logger.debug("\n------\n".join(x.body for x in testcases[:3]))
+        # ----------------------------------
+        # --------  GPTJ Analysis  ---------
+        results = GPTJ_Analysis(model, tokenizer, device, args.bs, testcases)
+        logger.info(f"Finished: {len(results)} test case is analyzed!")
+        # ----------------------------------
+        # --------  Write outputs  ---------
+        # All Result
+        json_results = MyEncoder().encode(results)
+        flatten_json_result = json_normalize(json.loads(json_results))
+        with open(args.output_path, 'a') as f:
+            flatten_json_result.to_csv(f, mode='a', header=f.tell() == 0)
+        # Aggregated Result
+        ag_file_path = args.output_path.split(".")
+        ag_file_path.insert(-1, "agg")
+        ag_file_path = ".".join(ag_file_path)
+        with open(ag_file_path, 'a') as f:
+            DataFrame(aggregate_by_key(results)).to_csv(f, mode='a', header=f.tell() == 0)
+        logger.info(f"The final result is written in '{args.output_path}'")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--input-path', type=str, required=True,
                         help="The s3 or local path to the aggregated result")
     parser.add_argument('--output-path', type=str, required=True, help="The local path to write the output")
+    parser.add_argument('--overwrite', action='store_true', help='if specified, overwrites the output file')
+    parser.add_argument('--append-output', action='store_true', help='if specified, appends to the existing output file')
     parser.add_argument('--factory-type', type=str, default="Num1")
-    parser.add_argument('--dp-template', type=str, default="Mult")
-    parser.add_argument('--seed', type=int, default=1234)
-    parser.add_argument('--bs', type=int, default=20, help="Batch size")
+    parser.add_argument('--dp-template', type=str, default="Mult") # Todo: currently not using this check if needed
+    parser.add_argument('--number-of-seeds', type=int, default=5)
+    parser.add_argument('--bs', type=int, default=50, help="Batch size")
     parser.add_argument('--shots', type=int, default=2)
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--top', type=int, default=200, help="Filter the top frequent data")

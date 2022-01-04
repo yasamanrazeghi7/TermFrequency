@@ -1,6 +1,7 @@
 from typing import List
 from collections import namedtuple
 from frequency_data_utils import FrequencyData
+import utils
 
 # DataPoint = namedtuple('DataPoint', ['question', 'answer', 'frequency_data'])
 class DataPoint:
@@ -39,16 +40,49 @@ class FrequencyDataTemplate:
         pass
 
 
-class MultiplyTemplate(FrequencyDataTemplate):
+class ArithmeticsTemplate(FrequencyDataTemplate):
+    def __init__(self, factory_type):
+        if 'mult' in factory_type.lower():
+            self.keyword = utils.MATH_OPERATORS['*']
+        elif 'plus' in factory_type.lower():
+            self.keyword = utils.MATH_OPERATORS['+']
+        else:
+            assert True, 'factory type does not have a template'
+
     def generate(self, frequency_data: FrequencyData) -> DataPoint:
-        question = "What is {0} times {1}?".format(frequency_data.x, frequency_data.y)
+        question = "What is {0} {2} {1}?".format(frequency_data.x, frequency_data.y, self.keyword)
         answer = frequency_data.z
         return DataPoint(question, answer, frequency_data)
 
 
-class Day1Template(FrequencyDataTemplate):
+class TimeUnitConversionTemplate(FrequencyDataTemplate):
+    def __init__(self, factory_type):
+        if 'minute' in factory_type.lower():
+            self.time_unit_source = 'minutes'
+            self.time_unit_des = 'seconds'
+        elif 'hour' in factory_type.lower():
+            self.time_unit_source = 'hours'
+            self.time_unit_des = 'minutes'
+        elif 'day' in factory_type.lower():
+            self.time_unit_source = 'days'
+            self.time_unit_des = 'hours'
+        elif 'week' in factory_type.lower():
+            self.time_unit_source = 'weeks'
+            self.time_unit_des = 'days'
+        elif 'month' in factory_type.lower():
+            self.time_unit_source = 'months'
+            self.time_unit_des = 'weeks'
+        elif 'year' in factory_type.lower():
+            self.time_unit_source = 'years'
+            self.time_unit_des = 'months'
+        elif 'decade' in factory_type.lower():
+            self.time_unit_source = 'decades'
+            self.time_unit_des = 'years'
+        else:
+            assert True, 'factory type does not have a template'
+
     def generate(self, frequency_data: FrequencyData) -> DataPoint:
-        question = "What is {0} days in hours?".format(frequency_data.x)
+        question = "What is {0} {1} in {2}?".format(frequency_data.x, self.time_unit_source, self.time_unit_des)
         answer = frequency_data.z
         return DataPoint(question, answer, frequency_data)
 
@@ -65,8 +99,11 @@ class DataPointGenerator:
         self.filters.append(data_filter)
         return self
 
-    def add_template(self, datapoint_template: FrequencyDataTemplate):
-        self.templates.append(datapoint_template)
+    def add_template(self, factory_type):
+        if factory_type.startswith('Num'):
+            self.templates.append(ArithmeticsTemplate(factory_type))
+        else:
+            self.templates.append(TimeUnitConversionTemplate(factory_type))
         return self
 
     def generate(self, frequency_dataset: List[FrequencyData]) -> List[DataPoint]:

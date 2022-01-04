@@ -29,10 +29,12 @@ class TestCaseTemplate:
         self.prompt_title = prompt_title
 
     def generate_testcase(self, train_datapoints: List[DataPoint], test_datapoint: DataPoint) -> TestCase:
-        result = self.prompt_title
-        result += "\n\n"
+        result = ""
+        if self.prompt_title:
+            result = self.prompt_title
+            result += "\n\n"
         for dp in train_datapoints:
-            result += f"{self.question_prefix} {dp.question}\n"
+            result += f"{self.question_prefix} {dp.question}\n"  # It does have a space between Q: and question
             result += f"{self.answer_prefix} {dp.answer}\n"
             result += "\n"
         result += f"{self.question_prefix} {test_datapoint.question}\n"

@@ -1,0 +1,28 @@
+python testcase_generator.py --input-path "s3://pilebucketyasaman/results/word_1num_counting/aggregated/minute.txt" --top 200 --number-of-seeds 5 --shots 2  --output-path "./results/num1_minute_top200_gptj_2shots_5seeds_results.csv" --factory-type "Minute1" --overwrite
+python testcase_generator.py --input-path "s3://pilebucketyasaman/results/word_1num_counting/aggregated/minute.txt" --top 200 --number-of-seeds 5 --shots 4  --output-path "./results/num1_minute_top200_gptj_4shots_5seeds_results.csv" --factory-type "Minute1" --overwrite
+python testcase_generator.py --input-path "s3://pilebucketyasaman/results/word_1num_counting/aggregated/minute.txt" --top 200 --number-of-seeds 5 --shots 8  --output-path "./results/num1_minute_top200_gptj_8shots_5seeds_results.csv" --factory-type "Minute1" --overwrite
+
+python testcase_generator.py --input-path "s3://pilebucketyasaman/results/word_1num_counting/aggregated/hour.txt" --top 200 --number-of-seeds 5 --shots 2  --output-path "./results/num1_hour_top200_gptj_2shots_5seeds_results.csv" --factory-type "Hour1" --overwrite
+python testcase_generator.py --input-path "s3://pilebucketyasaman/results/word_1num_counting/aggregated/hour.txt" --top 200 --number-of-seeds 5 --shots 4  --output-path "./results/num1_hour_top200_gptj_4shots_5seeds_results.csv" --factory-type "Hour1" --overwrite
+python testcase_generator.py --input-path "s3://pilebucketyasaman/results/word_1num_counting/aggregated/hour.txt" --top 200 --number-of-seeds 5 --shots 8  --output-path "./results/num1_hour_top200_gptj_8shots_5seeds_results.csv" --factory-type "Hour1" --overwrite
+
+python testcase_generator.py --input-path "s3://pilebucketyasaman/results/word_1num_counting/aggregated/day.txt" --top 200 --number-of-seeds 5 --shots 4  --output-path "./results/num1_day_top200_gptj_4shots_5seeds_results.csv" --factory-type "Day1" --overwrite
+python testcase_generator.py --input-path "s3://pilebucketyasaman/results/word_1num_counting/aggregated/day.txt" --top 200 --number-of-seeds 5 --shots 2  --output-path "./results/num1_day_top200_gptj_2shots_5seeds_results.csv" --factory-type "Day1" --overwrite
+python testcase_generator.py --input-path "s3://pilebucketyasaman/results/word_1num_counting/aggregated/day.txt" --top 200 --number-of-seeds 5 --shots 8  --output-path "./results/num1_day_top200_gptj_8shots_5seeds_results.csv" --factory-type "Day1" --overwrite
+
+python testcase_generator.py --input-path "s3://pilebucketyasaman/results/word_1num_counting/aggregated/week.txt" --top 200 --number-of-seeds 5 --shots 2  --output-path "./results/num1_week_top200_gptj_2shots_5seeds_results.csv" --factory-type "Week1" --overwrite
+python testcase_generator.py --input-path "s3://pilebucketyasaman/results/word_1num_counting/aggregated/week.txt" --top 200 --number-of-seeds 5 --shots 4  --output-path "./results/num1_week_top200_gptj_4shots_5seeds_results.csv" --factory-type "Week1" --overwrite
+python testcase_generator.py --input-path "s3://pilebucketyasaman/results/word_1num_counting/aggregated/week.txt" --top 200 --number-of-seeds 5 --shots 8  --output-path "./results/num1_week_top200_gptj_8shots_5seeds_results.csv" --factory-type "Week1" --overwrite
+
+##############################################3
+python testcase_generator.py --input-path "s3://pilebucketyasaman/results/word_1num_counting/aggregated/month.txt" --top 200 --number-of-seeds 5 --shots 2  --output-path "./results/num1_month_top200_gptj_2shots_5seeds_results.csv" --factory-type "Month1" --overwrite
+python testcase_generator.py --input-path "s3://pilebucketyasaman/results/word_1num_counting/aggregated/month.txt" --top 200 --number-of-seeds 5 --shots 4  --output-path "./results/num1_month_top200_gptj_4shots_5seeds_results.csv" --factory-type "Month1" --overwrite
+python testcase_generator.py --input-path "s3://pilebucketyasaman/results/word_1num_counting/aggregated/month.txt" --top 200 --number-of-seeds 5 --shots 8  --output-path "./results/num1_month_top200_gptj_8shots_5seeds_results.csv" --factory-type "Month1" --overwrite
+
+python testcase_generator.py --input-path "s3://pilebucketyasaman/results/word_1num_counting/aggregated/year.txt" --top 200 --number-of-seeds 5 --shots 2  --output-path "./results/num1_year_top200_gptj_2shots_5seeds_results.csv" --factory-type "Year1" --overwrite
+python testcase_generator.py --input-path "s3://pilebucketyasaman/results/word_1num_counting/aggregated/year.txt" --top 200 --number-of-seeds 5 --shots 4  --output-path "./results/num1_year_top200_gptj_4shots_5seeds_results.csv" --factory-type "Year1" --overwrite
+python testcase_generator.py --input-path "s3://pilebucketyasaman/results/word_1num_counting/aggregated/year.txt" --top 200 --number-of-seeds 5 --shots 8  --output-path "./results/num1_year_top200_gptj_8shots_5seeds_results.csv" --factory-type "Year1" --overwrite
+
+python testcase_generator.py --input-path "s3://pilebucketyasaman/results/word_1num_counting/aggregated/decade.txt" --top 200 --number-of-seeds 5 --shots 2  --output-path "./results/num1_decade_top200_gptj_2shots_5seeds_results.csv" --factory-type "Decade1" --overwrite
+python testcase_generator.py --input-path "s3://pilebucketyasaman/results/word_1num_counting/aggregated/decade.txt" --top 200 --number-of-seeds 5 --shots 4  --output-path "./results/num1_decade_top200_gptj_4shots_5seeds_results.csv" --factory-type "Decade1" --overwrite
+python testcase_generator.py --input-path "s3://pilebucketyasaman/results/word_1num_counting/aggregated/decade.txt" --top 200 --number-of-seeds 5 --shots 8  --output-path "./results/num1_decade_top200_gptj_8shots_5seeds_results.csv" --factory-type "Decade1" --overwrite
