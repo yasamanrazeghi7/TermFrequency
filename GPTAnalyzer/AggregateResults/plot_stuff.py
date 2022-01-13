@@ -7,12 +7,13 @@ WORD='mult' #mult, #plus or time_units
 WORD_FLAG = False
 TOP_FREQ = 200
 MODEL = 'gptj' #can be 'gptjsmall' 'gptjlarge'
-SHOTS = 8
+SHOTS = 8 # 2
 
 if WORD in ['mult', 'plus']:
-    file_name = f'/home/yrazeghi/PHD/TYM/GPTAnalyzer/results/num{FREQ_NUM}_{WORD}_top{TOP_FREQ}_{MODEL}_{SHOTS}shots_5seeds_results.csv'
-else:
     file_name = f'/home/yrazeghi/PHD/TYM/GPTAnalyzer/results/num{FREQ_NUM}_{WORD}_1to50_top{TOP_FREQ}_{MODEL}_{SHOTS}shots_5seeds_results.csv'
+else:
+    file_name = f'/home/yrazeghi/PHD/TYM/GPTAnalyzer/results/num{FREQ_NUM}_{WORD}_top{TOP_FREQ}_{MODEL}_{SHOTS}shots_5seeds_results.csv'
+
 data_file = pd.read_csv(file_name)
 
 print(data_file.columns)
