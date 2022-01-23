@@ -164,7 +164,7 @@ def create_complete_frequency_factory(factory_type: str):
     elif factory_type == "Num1Plus" or factory_type == "Num1#+":
         complete_frequency_factory = Num1PlusFactory(list(range(1, 51)), factory_type=factory_type)
     elif factory_type == "Num2Plus":
-        complete_frequency_factory = Num2PlusFactory()
+        complete_frequency_factory = Num2PlusFactory(factory_type=factory_type)
     elif factory_type == "Num1Less" or factory_type == "Num1More":
         complete_frequency_factory = Num1ComparisonFactory(list(range(1, 101)), factory_type=factory_type)
     elif factory_type == "Minute1":

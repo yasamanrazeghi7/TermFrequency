@@ -11,8 +11,12 @@ from typing import List
 TOP_FREQ = 200
 FREQ_NUM = 1
 WORD_FLAG = False
-FREQUENCY_DATA_KEY_COLUMN = 'testcase.data_point.frequency_data.key'
-FREQUENCY_VALUE_COLUMN = 'testcase.data_point.frequency_data.frequency'
+FREQUENCY_DATA_KEY_X_COLUMN = 'testcase.data_point.frequency_data.key'
+FREQUENCY_DATA_KEY_XY_COLUMN = 'testcase.data_point.frequency_data.key_XY'
+FREQUENCY_DATA_KEY_XZ_COLUMN = 'testcase.data_point.frequency_data.key_XZ'
+FREQUENCY_X_VALUE_COLUMN = 'testcase.data_point.frequency_data.frequency'
+FREQUENCY_XY_VALUE_COLUMN = 'testcase.data_point.frequency_data.frequency_XY'
+FREQUENCY_XZ_VALUE_COLUMN = 'testcase.data_point.frequency_data.frequency_XZ'
 IS_CORRECT_COLUMN = 'is_correct'
 
 
@@ -24,10 +28,25 @@ def log_reg_fit(X, y):
 
 
 class PlotInfo:
-    def __init__(self, word: str, shots: int, model_key: str):
+    def __init__(self, word: str, shots: int, model_key: str, key_type: str):
+        """
+
+        :param word:
+        :param shots:
+        :param model_key:
+        :param key_type: It can be 'x', 'xy', or 'xz'
+        """
+        key_value_column_map = {
+            'x': (FREQUENCY_DATA_KEY_X_COLUMN, FREQUENCY_X_VALUE_COLUMN),
+            'xy': (FREQUENCY_DATA_KEY_XY_COLUMN, FREQUENCY_XY_VALUE_COLUMN),
+            'xz': (FREQUENCY_DATA_KEY_XZ_COLUMN, FREQUENCY_XZ_VALUE_COLUMN),
+        }
+        if key_type not in key_value_column_map:
+            raise Exception(f"Wrong Key!, key must be one of {key_value_column_map.keys()}")
         self.word = word
         self.shots = shots
         self.model_key = model_key
+        self.key = key_type
         self.spearman_corr = 0.0
         self.similarity = 0.0
         self.coef = 0.0
@@ -53,16 +72,17 @@ class PlotInfo:
         self.data_file = pd.read_csv(file_name)
         self.data_file.replace(True, 1, inplace=True)
         self.data_file.replace(False, 0, inplace=True)
-        self.aggregated_data_by_key = self.data_file.groupby(FREQUENCY_DATA_KEY_COLUMN)[
-            [IS_CORRECT_COLUMN, FREQUENCY_VALUE_COLUMN]].mean()
+        self.key_column, self.frequency_value_column = key_value_column_map[key_type]
+        self.aggregated_data_by_key = self.data_file.groupby(self.key_column)[
+            [IS_CORRECT_COLUMN, self.frequency_value_column]].mean()
 
     def calculate_spearman(self):
         spearman_correlation = self.aggregated_data_by_key.corr(method='spearman')
-        self.spearman_corr = spearman_correlation.loc[IS_CORRECT_COLUMN, FREQUENCY_VALUE_COLUMN]
+        self.spearman_corr = spearman_correlation.loc[IS_CORRECT_COLUMN, self.frequency_value_column]
         return self
 
     def quantile_accuracies_plot(self, q_num: int = 10):
-        frequencies = self.aggregated_data_by_key[FREQUENCY_VALUE_COLUMN].to_numpy()
+        frequencies = self.aggregated_data_by_key[self.frequency_value_column].to_numpy()
         is_correct = self.aggregated_data_by_key[IS_CORRECT_COLUMN].to_numpy()
         # Quantiles computes the bin edges
         quantiles = np.quantile(frequencies, q=np.linspace(0, 1, num=q_num + 1))
@@ -91,7 +111,7 @@ class PlotInfo:
         return self
 
     def calculate_logistic_regression(self):
-        freq_all = self.data_file[FREQUENCY_VALUE_COLUMN].to_numpy()
+        freq_all = self.data_file[self.frequency_value_column].to_numpy()
         accuracy_all = self.data_file[IS_CORRECT_COLUMN].to_numpy()
         frequencies_log10 = np.log10(freq_all)
         coef, intercept = log_reg_fit(frequencies_log10, accuracy_all)
@@ -111,7 +131,7 @@ class PlotInfo:
     def get_scatter_params(self):
         scatter_params = {}
         scatter_params['data'] = self.aggregated_data_by_key
-        scatter_params['x'] = FREQUENCY_VALUE_COLUMN
+        scatter_params['x'] = self.frequency_value_column
         scatter_params['y'] = IS_CORRECT_COLUMN
         return scatter_params
 
@@ -142,9 +162,9 @@ class PlotInfo:
         return model_name_map[self.model_key]
 
 
-def save_freq_acc_plot_and_get_info(word: str, shots: int, model: str, show_plot: bool = False):
+def save_freq_acc_plot_and_get_info(word: str, shots: int, model: str, key: str, show_plot: bool = False):
     # Creat PlotInfo
-    plot_info = PlotInfo(word, shots, model)
+    plot_info = PlotInfo(word, shots, model, key_type=key)
     plot_info.calculate_spearman()
     plot_info.quantile_accuracies_plot(q_num=10)
     plot_info.calculate_logistic_regression()
@@ -152,12 +172,6 @@ def save_freq_acc_plot_and_get_info(word: str, shots: int, model: str, show_plot
 
     # Plot Configuration
     plt.xscale('log')
-    plt.xlabel('Frequency')
-    plt.ylabel('Accuracy')
-    plt.tight_layout()
-    # plt.subplots_adjust(top=0.60 )
-    # plt.subplots_adjust(right=0.90 )
-    plt.ylim([0, 1.05])
 
     # Quantiles
     quantile_bins = plot_info.quantile_bins
@@ -182,15 +196,23 @@ def save_freq_acc_plot_and_get_info(word: str, shots: int, model: str, show_plot
     sns.regplot(data=data_params, x=x, y=y, scatter=True, fit_reg=False, scatter_kws={"color": "#18A558", "s": 5},
                 x_jitter=0.01, y_jitter=0.01)
 
+    # Plot Configuration (final)
+    plt.xlabel('Frequency')
+    plt.ylabel('Accuracy')
+    plt.tight_layout()
+    # plt.subplots_adjust(top=0.60 )
+    # plt.subplots_adjust(right=0.90 )
+    plt.ylim([0, 1.05])
+
     shots_str = "0" + str(shots) if shots < 10 else str(shots)
-    plt.savefig(f'./figures3/{plot_info.get_mode()}_{shots_str}shots_{plot_info.get_model()}.pdf', format='pdf',
+    plt.savefig(f'./figures3/key_{key}_{plot_info.get_mode()}_{shots_str}shots_{plot_info.get_model()}.pdf', format='pdf',
                 dpi=500)
     if show_plot:
         plt.show()
     return plot_info
 
 
-def save_logistic_regression_lines_plot(word: str, model: str, shots: List[int], show_plot: bool = False):
+def save_logistic_regression_lines_plot_for_shots(word: str, model: str, shots: List[int], key: str, show_plot: bool = False):
     plt.xscale('log')
     colors = ['#dda15e', '#e0aaff', '#06d6a0', '#073b4c', '#ef476f']
     line_style = [':', '-.', '--', '--', '-']
@@ -198,7 +220,7 @@ def save_logistic_regression_lines_plot(word: str, model: str, shots: List[int],
     model_name = ""
     for i, shot in enumerate(shots):
         # Creat PlotInfo
-        plot_info = PlotInfo(word, shot, model)
+        plot_info = PlotInfo(word, shot, model, key_type= key)
         mode = plot_info.get_mode()
         model_name = plot_info.get_model()
         plot_info.calculate_spearman()
@@ -211,8 +233,34 @@ def save_logistic_regression_lines_plot(word: str, model: str, shots: List[int],
         plt.plot(t, p_t, lw=1, ls=line_style[i % len(line_style)], color=colors[i % len(colors)],
                  label=f"shots = {shot}")
     plt.legend(loc='center left', bbox_to_anchor=(0.70, 0.5))
-    plt.xlabel('frequency(x)')
-    plt.ylabel('accuracy')
-    plt.savefig(f'./figures4/{mode}_shots_{model_name}.pdf', format='pdf', dpi=500)
+    plt.xlabel(f'Frequency - ({key})')
+    plt.ylabel('Accuracy')
+    plt.savefig(f'./figures4/key_{key}_mode_{mode}_shots_{model_name}.pdf', format='pdf', dpi=500)
+    if show_plot:
+        plt.show()
+
+
+def save_logistic_regression_lines_plot_for_models(word: str, models: List[str], shot: int, key: str, show_plot: bool = False):
+    plt.xscale('log')
+    colors = ['#dda15e', '#e0aaff', '#06d6a0', '#073b4c', '#ef476f']
+    line_style = [':', '-.', '--', '--', '-']
+    mode = ""
+    for i, model in enumerate(models):
+        # Creat PlotInfo
+        plot_info = PlotInfo(word, shot, model, key_type=key)
+        mode = plot_info.get_mode()
+        plot_info.calculate_spearman()
+        plot_info.quantile_accuracies_plot(q_num=10)
+        plot_info.calculate_logistic_regression()
+        plot_info.calculate_accuracy_all()
+
+        t = plot_info.logistic_regression_t
+        p_t = plot_info.logistic_regression_pt
+        plt.plot(t, p_t, lw=1, ls=line_style[i % len(line_style)], color=colors[i % len(colors)],
+                 label=f"LM = {plot_info.get_model()}")
+    plt.legend(loc='center left', bbox_to_anchor=(0.70, 0.5))
+    plt.xlabel(f'Frequency - ({key})')
+    plt.ylabel('Accuracy')
+    plt.savefig(f'./figures4/key_{key}_mode_{mode}_shots_{shot}_all_models.pdf', format='pdf', dpi=500)
     if show_plot:
         plt.show()
