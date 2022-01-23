@@ -42,15 +42,26 @@ class FrequencyDataTemplate:
 
 class ArithmeticsTemplate(FrequencyDataTemplate):
     def __init__(self, factory_type):
-        if 'mult' in factory_type.lower():
-            self.keyword = utils.MATH_OPERATORS['*']
-        elif 'plus' in factory_type.lower():
-            self.keyword = utils.MATH_OPERATORS['+']
+        if factory_type in utils.factory_type_dict:
+            self.keyword = utils.factory_type_dict[factory_type][1]
         else:
             assert True, 'factory type does not have a template'
 
     def generate(self, frequency_data: FrequencyData) -> DataPoint:
         question = "What is {0} {2} {1}?".format(frequency_data.x, frequency_data.y, self.keyword)
+        answer = frequency_data.z
+        return DataPoint(question, answer, frequency_data)
+
+
+class ComparisonTemplate(FrequencyDataTemplate):
+    def __init__(self, factory_type):
+        if factory_type in utils.factory_type_dict.keys():
+            self.keyword = utils.factory_type_dict[factory_type][1]
+        else:
+            assert True, 'factory type does not have a template'
+
+    def generate(self, frequency_data: FrequencyData) -> DataPoint:
+        question = "Which one is {2}? {0} or {1}".format(frequency_data.x, frequency_data.y, self.keyword)
         answer = frequency_data.z
         return DataPoint(question, answer, frequency_data)
 
@@ -100,7 +111,9 @@ class DataPointGenerator:
         return self
 
     def add_template(self, factory_type):
-        if factory_type.startswith('Num'):
+        if factory_type.startswith('Num') and ('less' in factory_type.lower() or 'more' in factory_type.lower()):
+            self.templates.append(ComparisonTemplate(factory_type))
+        elif factory_type.startswith('Num'):
             self.templates.append(ArithmeticsTemplate(factory_type))
         else:
             self.templates.append(TimeUnitConversionTemplate(factory_type))

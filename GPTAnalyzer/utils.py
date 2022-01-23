@@ -10,12 +10,39 @@ import torch
 
 logger = logging.getLogger(__name__)
 
-MATH_OPERATORS = {
-    '+': 'plus',
-    '*': 'times',
-    '-': 'minus',
-    '/': 'divides',
+factory_type_dict = {
+    #each factory type should have a math operator and keyword for the templete
+    "Num1Mult": ('*', 'times'),
+    "Num2Mult": ('*', 'times'),
+    "Num1#*": ('*', '#'),
+    "Num2#*": ('*', '#'),
+    "Num1Plus": ('+', 'plus'),
+    "Num2Plus": ('+', 'plus'),
+    "Num1#+": ('+', '#'),
+    "Num2#+": ('+', '#'),
+    "Num1concat#": ('concat', '#'), #this should have a separate factorty
+    "Num1mode10#": ('%', '#'),
+    "Num1Less": ('comp', 'lower'),
+    "Num1More": ('comp', 'higher')
 }
+
+# MATH_OPERATORS_WORD_Template = {
+#     '+': 'plus',
+#     '*': 'times',
+#     '#*': '#',
+#     '#+': '#',
+#     'concat#': 'concat by',
+#     'mode10#': '#'
+# }
+
+# MATH_OPERATORS_From_WORD_Template = {
+#     'plus': '+',
+#     'times': '*',
+#     '#*': '#',
+#     '#+': '#',
+#     'concat#': 'concat by',
+#     'mode10#': '#'
+# }
 TIME_UNIT_CONVERTORS = {
     'minute': 60,
     'hour': 60,
