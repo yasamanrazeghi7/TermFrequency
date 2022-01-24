@@ -288,6 +288,7 @@ def save_freq_acc_plot_and_get_info(word: str, shots: int, model: str, key: str,
                 dpi=500)
     if show_plot:
         plt.show()
+    plt.close()
     return plot_info
 
 
@@ -317,6 +318,7 @@ def save_logistic_regression_lines_plot_for_shots(word: str, model: str, shots: 
     plt.savefig(f'./figures4/key_{key}_mode_{mode}_shots_{model_name}.pdf', format='pdf', dpi=500)
     if show_plot:
         plt.show()
+    plt.close()
 
 
 def save_logistic_regression_lines_plot_for_models(word: str, models: List[str], shot: int, key: str, show_plot: bool = False):
@@ -343,3 +345,4 @@ def save_logistic_regression_lines_plot_for_models(word: str, models: List[str],
     plt.savefig(f'./figures4/key_{key}_mode_{mode}_shots_{shot}_all_models.pdf', format='pdf', dpi=500)
     if show_plot:
         plt.show()
+    plt.close()
