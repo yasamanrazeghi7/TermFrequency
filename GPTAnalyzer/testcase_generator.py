@@ -73,6 +73,7 @@ def aggregate_by_key(results: List[TestCaseResult]) -> List:
                           "#Total": total_map[key_freq], "Accuracy": correct_map[key_freq] / total_map[key_freq]})
     return ag_result
 
+
 def main(args):
     # -------------- Setup model-------------
     if args.local_rank == -1:
@@ -95,57 +96,53 @@ def main(args):
     else:
         assert False, 'output file exists, put --overwrite or --append_output'
 
+    factory_types = [args.factory_type]
+    if args.factory_type == 'Num1MoreLess':
+        factory_types = ['Num1More', 'Num1Less']
+        # multi_factory_type_analysis(args, ['Num1More', 'Num1Less'], model, tokenizer, device)
+        # return
+
     # ----------------------------------
     # ----- Read frequency data  -------
-    complete_frequency_factory = frequency_data_utils.create_complete_frequency_factory(args.factory_type)
-    input_path = args.input_path
-    logger.debug(f"The input path is '{input_path}'")
-    my_file = utils.read_frequency_file(input_path)
-    frequency_data = []
-    for line in my_file.split("\n")[:args.top]:
-        key, frequency = eval(line)
-        frequency_data.extend(complete_frequency_factory.build(key, frequency))
-    logger.info(f"Reading is done! Total Complete Frequency Data: {len(frequency_data)}")
-    logger.debug("A sample of complete frequency data:")
-    logger.debug("\n".join(str(x) for x in frequency_data[:40]))
+    frequency_data_map = {}
+    for factory_type in factory_types:
+        frequency_data = []
+        complete_frequency_factory = frequency_data_utils.create_complete_frequency_factory(factory_type)
+        input_path = args.input_path
+        logger.debug(f"The input path is '{input_path}'")
+        my_file = utils.read_frequency_file(input_path)
+        for line in my_file.split("\n")[:args.top]:
+            key, frequency = eval(line)
+            frequency_data.extend(complete_frequency_factory.build(key, frequency))
+        frequency_data_map[factory_type] = frequency_data
+    logger.info(f"Reading is done! Total Complete Frequency Data: {sum(len(x) for x in frequency_data_map.values())}")
+    # logger.debug("A sample of complete frequency data:")
+    # logger.debug("\n".join(str(x) for x in frequency_data[:40]))
 
     for i in range(args.number_of_seeds):
         utils.set_seed(i)
-
-        if args.factory_type == 'Num1MoreLess':
-            more_datapoints = DataPointGenerator()\
-                .add_filter(DigitLimitFilter(2))\
-                .add_template("Num1More")\
-                .generate(frequency_data)
-            less_datapoints = DataPointGenerator() \
+        # ----------------------------------
+        # -----  Generate DataPoints  ------
+        list_of_data_points = []
+        for factory_type, frequency_data in frequency_data_map.items():
+            data_points = DataPointGenerator() \
                 .add_filter(DigitLimitFilter(2)) \
-                .add_template("Num1Less") \
+                .add_template(factory_type) \
                 .generate(frequency_data)
-            testcase_template = TestCaseTemplate("Q:", "A:", None)
-            testcases = special_testcase_generator([more_datapoints, less_datapoints], testcase_template, args.shots)
-            results = GPTJ_Analysis(model, tokenizer, device, args.bs, testcases)
-            logger.info(f"Finished: {len(results)} test case is analyzed!")
-        else:
-            # ----------------------------------
-            # -----  Generate DataPoints  ------
-            datapoint_generator = DataPointGenerator()
-            datapoint_generator.add_filter(DigitLimitFilter(2))
-            datapoint_generator.add_template(args.factory_type)
-            datapoints = datapoint_generator.generate(frequency_data)
-            logger.info(f"Generated {len(datapoints)} data points!")
+            logger.info(f"Generated {len(data_points)} data points!")
             logger.debug("A sample of data points:")
-            logger.debug("\n".join(str(x) for x in datapoints[:40]))
-            # ----------------------------------
-            # -----  Generate TestCases  -------
-            testcase_template = TestCaseTemplate("Q:", "A:", None)
-            testcases = testcase_generator(datapoints, testcase_template, args.shots)
-            logger.info(f"Generated {len(testcases)} Test Cases!")
-            logger.debug("A sample of test cases:")
-            logger.debug("\n------\n".join(x.body for x in testcases[:3]))
-            # ----------------------------------
-            # --------  GPTJ Analysis  ---------
-            results = GPTJ_Analysis(model, tokenizer, device, args.bs, testcases)
-            logger.info(f"Finished: {len(results)} test case is analyzed!")
+            logger.debug("\n".join(str(x) for x in data_points[:40]))
+            list_of_data_points.append(data_points)
+        # # ----------------------------------
+        # # -----  Generate TestCases  -------
+        testcase_template = TestCaseTemplate("Q:", "A:", None)
+        testcases = special_testcase_generator(list_of_data_points, testcase_template, args.shots)
+        logger.debug("A sample of test cases:")
+        logger.debug("\n------\n".join(x.body for x in testcases[:3]))
+        # ----------------------------------
+        # --------  GPTJ Analysis  ---------
+        results = GPTJ_Analysis(model, tokenizer, device, args.bs, testcases)
+        logger.info(f"Finished: {len(results)} test case is analyzed!")
         # ----------------------------------
         # --------  Write outputs  ---------
         # All Result
