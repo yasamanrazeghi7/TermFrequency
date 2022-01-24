@@ -23,7 +23,8 @@ factory_type_dict = {
     "Num1concat#": ('concat', '#'), #this should have a separate factorty
     "Num1mode10#": ('%', '#'),
     "Num1Less": ('comp', 'lower'),
-    "Num1More": ('comp', 'higher')
+    "Num1More": ('comp', 'higher'),
+    "Num1MoreLess": ('comp', 'higherlower'),
 }
 
 # MATH_OPERATORS_WORD_Template = {

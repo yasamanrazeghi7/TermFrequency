@@ -16,7 +16,7 @@ from transformers import GPTJForCausalLM, AutoTokenizer, GPTNeoForCausalLM
 import utils
 import frequency_data_utils
 from datapoint_utils import DataPointGenerator, DigitLimitFilter
-from testcase_utils import TestCase, TestCaseResult, TestCaseTemplate, testcase_generator
+from testcase_utils import TestCase, TestCaseResult, TestCaseTemplate, testcase_generator, special_testcase_generator
 
 logger = logging.getLogger(__name__)
 
@@ -112,32 +112,40 @@ def main(args):
     for i in range(args.number_of_seeds):
         utils.set_seed(i)
 
-        # ----------------------------------
-        # -----  Generate DataPoints  ------
-        datapoint_generator = DataPointGenerator()
-        datapoint_generator.add_filter(DigitLimitFilter(2))
-        datapoint_generator.add_template(args.factory_type)
-        # if args.dp_template == "Mult":
-        #     datapoint_generator.add_template(MultiplyTemplate())
-        # elif args.dp_template == "Day1":
-        #     datapoint_generator.add_template(Day1Template())
-        # else:
-        #     datapoint_generator.add_template(MultiplyTemplate())
-        datapoints = datapoint_generator.generate(frequency_data)
-        logger.info(f"Generated {len(datapoints)} data points!")
-        logger.debug("A sample of data points:")
-        logger.debug("\n".join(str(x) for x in datapoints[:40]))
-        # ----------------------------------
-        # -----  Generate TestCases  -------
-        testcase_template = TestCaseTemplate("Q:", "A:", None)
-        testcases = testcase_generator(datapoints, testcase_template, args.shots)
-        logger.info(f"Generated {len(testcases)} Test Cases!")
-        logger.debug("A sample of test cases:")
-        logger.debug("\n------\n".join(x.body for x in testcases[:3]))
-        # ----------------------------------
-        # --------  GPTJ Analysis  ---------
-        results = GPTJ_Analysis(model, tokenizer, device, args.bs, testcases)
-        logger.info(f"Finished: {len(results)} test case is analyzed!")
+        if args.factory_type == 'Num1MoreLess':
+            more_datapoints = DataPointGenerator()\
+                .add_filter(DigitLimitFilter(2))\
+                .add_template("Num1More")\
+                .generate(frequency_data)
+            less_datapoints = DataPointGenerator() \
+                .add_filter(DigitLimitFilter(2)) \
+                .add_template("Num1Less") \
+                .generate(frequency_data)
+            testcase_template = TestCaseTemplate("Q:", "A:", None)
+            testcases = special_testcase_generator([more_datapoints, less_datapoints], testcase_template, args.shots)
+            results = GPTJ_Analysis(model, tokenizer, device, args.bs, testcases)
+            logger.info(f"Finished: {len(results)} test case is analyzed!")
+        else:
+            # ----------------------------------
+            # -----  Generate DataPoints  ------
+            datapoint_generator = DataPointGenerator()
+            datapoint_generator.add_filter(DigitLimitFilter(2))
+            datapoint_generator.add_template(args.factory_type)
+            datapoints = datapoint_generator.generate(frequency_data)
+            logger.info(f"Generated {len(datapoints)} data points!")
+            logger.debug("A sample of data points:")
+            logger.debug("\n".join(str(x) for x in datapoints[:40]))
+            # ----------------------------------
+            # -----  Generate TestCases  -------
+            testcase_template = TestCaseTemplate("Q:", "A:", None)
+            testcases = testcase_generator(datapoints, testcase_template, args.shots)
+            logger.info(f"Generated {len(testcases)} Test Cases!")
+            logger.debug("A sample of test cases:")
+            logger.debug("\n------\n".join(x.body for x in testcases[:3]))
+            # ----------------------------------
+            # --------  GPTJ Analysis  ---------
+            results = GPTJ_Analysis(model, tokenizer, device, args.bs, testcases)
+            logger.info(f"Finished: {len(results)} test case is analyzed!")
         # ----------------------------------
         # --------  Write outputs  ---------
         # All Result
