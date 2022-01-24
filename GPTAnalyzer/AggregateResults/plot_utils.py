@@ -1,3 +1,5 @@
+import random
+
 from sklearn.linear_model import LogisticRegression
 import pandas as pd
 import numpy as np
@@ -146,7 +148,7 @@ class PlotInfo:
                                                                                second_column=second_column,
                                                                                word=self.word)
                 self.data_file.at[i, self.key_column] = new_key
-                self.data_file.at[i, self.frequency_value_column] = new_frequency
+                self.data_file.at[i, self.frequency_value_column] = new_frequency if new_frequency > 0 else random.random()
                 total_not_found += not_found
             if total_not_found > 0:
                 print(f"Total Not Found for key {key_type} is {total_not_found}")
