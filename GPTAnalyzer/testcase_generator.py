@@ -182,5 +182,9 @@ if __name__ == "__main__":
     else:
         level = logging.INFO
     logging.basicConfig(level=level)
-
+    logger.info(f"OutputPath: {args.output_path}")
+    logger.info(f"Model: {args.model}")
+    logger.info(f"FactoryType: {args.factory_type}")
+    logger.info(f"Shots: {args.shots}")
+    logger.info(f"BS: {args.bs}")
     main(args)

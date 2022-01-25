@@ -50,7 +50,7 @@ class FrequencyCache:
             for index, line in enumerate(lines):
                 key, frequency = eval(line)
                 frequency_dict[key] = frequency
-                if (index+1) % 10_000_000 == 0:
+                if (index + 1) % 10_000_000 == 0:
                     print(f"I'm at index {index}, lines: {line}")
         self.frequency_dicts[file_name] = frequency_dict
         return self.frequency_dicts[file_name]
@@ -72,7 +72,7 @@ def find_pair_frequency(row, first_column: str, second_column: str, word):
         tuple2 = (max_val, min_val, word)
     freq_dict = frequency_cache_singleton.get_frequency_dict(word)
     if tuple2 in freq_dict.keys() and not (tuple1 == tuple2):
-            print(f"something is very wrong!!!!!!!!!!! tuple1: {tuple1} tuple2: {tuple2}")
+        print(f"something is very wrong!!!!!!!!!!! tuple1: {tuple1} tuple2: {tuple2}")
     if tuple1 in freq_dict.keys():
         num_2_key = str(tuple1)
         num_2_frequency = freq_dict[tuple1]
@@ -120,11 +120,11 @@ class PlotInfo:
         self.logistic_regression_pt = None
 
         if self.word in ['mult', 'plus', 'concat', 'plushashtag', 'multhashtag']:
-            file_name = f'./results2/results/num{FREQ_NUM}_{self.word}_1to50_top{TOP_FREQ}_{self.model_key}_{self.shots}shots_5seeds_results.csv'
-        elif self.word in ['compareless', 'comparemore']:
-            file_name = f'./results2/results/num{FREQ_NUM}_{self.word}_1to100_top{TOP_FREQ}_{self.model_key}_{self.shots}shots_5seeds_results.csv'
+            file_name = f'./results5/results/num{FREQ_NUM}_{self.word}_1to50_top{TOP_FREQ}_{self.model_key}_{self.shots}shots_5seeds_results.csv'
+        elif self.word in ['compareless', 'comparemore', 'comparemoreless']:
+            file_name = f'./results5/results/num{FREQ_NUM}_{self.word}_1to100_top{TOP_FREQ}_{self.model_key}_{self.shots}shots_5seeds_results.csv'
         else:
-            file_name = f'./results2/results/num{FREQ_NUM}_{self.word}_top{TOP_FREQ}_{self.model_key}_{self.shots}shots_5seeds_results.csv'
+            file_name = f'./results5/results/num{FREQ_NUM}_{self.word}_top{TOP_FREQ}_{self.model_key}_{self.shots}shots_5seeds_results.csv'
         self.data_file = pd.read_csv(file_name)
         self.data_file.replace(True, 1, inplace=True)
         self.data_file.replace(False, 0, inplace=True)
@@ -144,11 +144,12 @@ class PlotInfo:
             total_not_found = 0
             for i, row in self.data_file.iterrows():
                 new_key, new_frequency, not_found = find_pair_frequency(row=row,
-                                                                               first_column=first_column,
-                                                                               second_column=second_column,
-                                                                               word=self.word)
+                                                                        first_column=first_column,
+                                                                        second_column=second_column,
+                                                                        word=self.word)
                 self.data_file.at[i, self.key_column] = new_key
-                self.data_file.at[i, self.frequency_value_column] = new_frequency if new_frequency > 0 else random.random()
+                self.data_file.at[
+                    i, self.frequency_value_column] = new_frequency if new_frequency > 0 else random.random()
                 total_not_found += not_found
             if total_not_found > 0:
                 print(f"Total Not Found for key {key_type} is {total_not_found}")
@@ -241,7 +242,8 @@ class PlotInfo:
         return model_name_map[self.model_key]
 
 
-def save_freq_acc_plot_and_get_info(word: str, shots: int, model: str, key: str, show_plot: bool = False, quantile_number: int = 10):
+def save_freq_acc_plot_and_get_info(word: str, shots: int, model: str, key: str, show_plot: bool = False,
+                                    quantile_number: int = 10):
     # Creat PlotInfo
     plot_info = PlotInfo(word, shots, model, key_type=key)
     plot_info.calculate_spearman()
@@ -284,7 +286,8 @@ def save_freq_acc_plot_and_get_info(word: str, shots: int, model: str, key: str,
     plt.ylim([0, 1.05])
 
     shots_str = "0" + str(shots) if shots < 10 else str(shots)
-    plt.savefig(f'./figures3/key_{key}_{plot_info.get_mode()}_{shots_str}shots_{plot_info.get_model()}.pdf', format='pdf',
+    plt.savefig(f'./figures4/key_{key}_{plot_info.get_mode()}_{shots_str}shots_{plot_info.get_model()}.pdf',
+                format='pdf',
                 dpi=500)
     if show_plot:
         plt.show()
@@ -292,7 +295,8 @@ def save_freq_acc_plot_and_get_info(word: str, shots: int, model: str, key: str,
     return plot_info
 
 
-def save_logistic_regression_lines_plot_for_shots(word: str, model: str, shots: List[int], key: str, show_plot: bool = False):
+def save_logistic_regression_lines_plot_for_shots(word: str, model: str, shots: List[int], key: str,
+                                                  show_plot: bool = False):
     plt.xscale('log')
     colors = ['#dda15e', '#e0aaff', '#06d6a0', '#073b4c', '#ef476f']
     line_style = [':', '-.', '--', '--', '-']
@@ -300,7 +304,7 @@ def save_logistic_regression_lines_plot_for_shots(word: str, model: str, shots: 
     model_name = ""
     for i, shot in enumerate(shots):
         # Creat PlotInfo
-        plot_info = PlotInfo(word, shot, model, key_type= key)
+        plot_info = PlotInfo(word, shot, model, key_type=key)
         mode = plot_info.get_mode()
         model_name = plot_info.get_model()
         # plot_info.calculate_spearman()
@@ -321,7 +325,8 @@ def save_logistic_regression_lines_plot_for_shots(word: str, model: str, shots: 
     plt.close()
 
 
-def save_logistic_regression_lines_plot_for_models(word: str, models: List[str], shot: int, key: str, show_plot: bool = False):
+def save_logistic_regression_lines_plot_for_models(word: str, models: List[str], shot: int, key: str,
+                                                   show_plot: bool = False):
     plt.xscale('log')
     colors = ['#dda15e', '#e0aaff', '#06d6a0', '#073b4c', '#ef476f']
     line_style = [':', '-.', '--', '--', '-']
@@ -343,6 +348,35 @@ def save_logistic_regression_lines_plot_for_models(word: str, models: List[str],
     plt.xlabel(f'Frequency - ({key})')
     plt.ylabel('Accuracy')
     plt.savefig(f'./figures4/key_{key}_mode_{mode}_shots_{shot}_all_models.pdf', format='pdf', dpi=500)
+    if show_plot:
+        plt.show()
+    plt.close()
+
+
+def save_logistic_regression_lines_plot_for_models_shots(word: str, models: List[str], shots: List[int], key: str,
+                                                         show_plot: bool = False):
+    plt.xscale('log')
+    colors = ['#dda15e', '#e0aaff', '#06d6a0', '#073b4c', '#ef476f']
+    line_style = [':', '-.', '--', '--', '-']
+    mode = ""
+    for j, shot in enumerate(shots):
+        for i, model in enumerate(models):
+            # Creat PlotInfo
+            plot_info = PlotInfo(word, shot, model, key_type=key)
+            mode = plot_info.get_mode()
+            # plot_info.calculate_spearman()
+            # plot_info.quantile_accuracies_plot(q_num=10)
+            plot_info.calculate_logistic_regression()
+            # plot_info.calculate_accuracy_all()
+
+            t = plot_info.logistic_regression_t
+            p_t = plot_info.logistic_regression_pt
+            plt.plot(t, p_t, lw=1, ls=line_style[j % len(line_style)], color=colors[i % len(colors)],
+                     label=f"shot={shot}, LM={plot_info.get_model()}")
+    plt.legend(loc='center left', bbox_to_anchor=(0.60, 0.6))
+    plt.xlabel(f'Frequency - ({key})')
+    plt.ylabel('Accuracy')
+    plt.savefig(f'./figures4/key_{key}_mode_{mode}_some_shots__all_models.pdf', format='pdf', dpi=500, bbox_inches='tight')
     if show_plot:
         plt.show()
     plt.close()
