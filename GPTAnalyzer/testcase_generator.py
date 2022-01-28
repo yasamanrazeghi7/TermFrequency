@@ -137,7 +137,7 @@ def main(args):
         # # -----  Generate TestCases  -------
         testcase_template = TestCaseTemplate("Q:", "A:", None)
         testcases = special_testcase_generator(list_of_data_points, testcase_template, args.shots)
-        logger.debug("A sample of test cases:")
+        logger.error(f"A sample of test cases, Total {len(testcases)}:")
         logger.debug("\n------\n".join(x.body for x in testcases[:3]))
         # ----------------------------------
         # --------  GPTJ Analysis  ---------
