@@ -643,7 +643,7 @@ def save_lines_plot_for_models_shots(word: str, models: List[str], shots: List[i
         bottom=False,  # ticks along the bottom edge are off
         top=False)  # ticks along the top edge are off
     
-    # NOTE(rob): Slicing model names 'cause I am too lazy to switch the for loops.
+    # NOTE(XXX): Slicing model names 'cause I am too lazy to switch the for loops.
     plt.xticks(ticks=[0.25,1.25,2.25], labels=model_names[:3])
     plt.legend(loc='upper left', bbox_to_anchor=(0, 1))
     plt.ylim(0, 1.05)
