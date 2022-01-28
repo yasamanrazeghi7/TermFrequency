@@ -5,7 +5,7 @@ BEGIN_INDEX=$2
 END_INDEX=$3
 ALL_NUMBERS=(`seq -w 0 29`)
 ADDR=hadoop@$DOMAIN_NAME
-PEM_FILE=~/yrazeghi.pem
+PEM_FILE=~/XXXX.pem
 WORKSPACE_PATH=`realpath ..`
 scp -i $PEM_FILE -r $WORKSPACE_PATH/SparkScripts "$ADDR:~"
 scp -i $PEM_FILE $WORKSPACE_PATH/*.py "$ADDR:~"
@@ -13,8 +13,8 @@ for i in `seq -w $BEGIN_INDEX $END_INDEX`; do
   file_index=${ALL_NUMBERS[$i]}
   echo "Running counting num in file $file_index"
   ## assign input outputs of the code
-  input_file_pattern="s3://pilebucketyasaman/pile/new_processed/${file_index}_*.jsonl" #_* runs all for test on small files replace with _0
-  output_folder="s3://pilebucketyasaman/results/num_2_counting/${file_index}/"
+  input_file_pattern="s3://pilebucketXXXX/pile/new_processed/${file_index}_*.jsonl" #_* runs all for test on small files replace with _0
+  output_folder="s3://pilebucketXXXX/results/num_2_counting/${file_index}/"
   window_size=5
   num_count=2
   ## run the code remotely with inputs

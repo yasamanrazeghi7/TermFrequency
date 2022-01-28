@@ -2,12 +2,12 @@
 
 CLUSTER_NAME=$1
 CLUSTER_INFO_FILE=$2
-TMP_FILE=$(mktemp /tmp/yasaman-aws-cluster.XXXXXX)
+TMP_FILE=$(mktemp /tmp/XXXX-aws-cluster.XXXXXX)
 aws emr create-cluster \
 --name "$CLUSTER_NAME" \
 --release-label emr-5.33.1 \
 --applications Name=Spark \
---ec2-attributes KeyName=yrazeghi \
+--ec2-attributes KeyName=XXXX \
 --instance-type m5.xlarge \
 --instance-count 3 \
 --use-default-roles > $TMP_FILE

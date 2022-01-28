@@ -1,7 +1,7 @@
 #!/bin/bash
 
 CLUSTER_COUNT=$1
-CLUSTER_PREFIX=${2:-YASAMAN}
+CLUSTER_PREFIX=${2:-XXXX}
 BASE=$(pwd)
 LOG_DIR=$BASE/Logs
 mkdir -p $LOG_DIR

@@ -65,7 +65,7 @@ if __name__ == "__main__":
     input_file = sys.argv[1]
     input_file_name = input_file.split("/")[-1]
     output_file = f"pile/new_processed/{input_file_name}"
-    bucket_name = 'pilebucketyasaman'
+    bucket_name = 'pilebucketXXXX'
     window_size = 5
     digit_limit = 6
     max_file_lines = 10_000_000

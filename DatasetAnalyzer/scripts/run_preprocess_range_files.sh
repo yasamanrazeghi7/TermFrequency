@@ -5,7 +5,7 @@ BEGIN_INDEX=$2
 END_INDEX=$3
 ALL_NUMBERS=(`seq -w 0 29`)
 ADDR=hadoop@$DOMAIN_NAME
-PEM_FILE=~/yrazeghi.pem
+PEM_FILE=~/XXXX.pem
 WORKSPACE_PATH=`realpath ..`
 ssh  -i $PEM_FILE $ADDR "python3 -m pip install boto3"
 scp -i $PEM_FILE $WORKSPACE_PATH/*.py "$ADDR:~"

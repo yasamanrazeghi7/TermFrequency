@@ -32,8 +32,8 @@ TOP_FREQ = 200
 MODEL = 'gptj'  # can be 'gptjsmall' 'gptjlarge'
 SHOTS = 4
 
-# file_name = f'/home/yrazeghi/PHD/TYM/GPTAnalyzer/results/num{FREQ_NUM}_{WORD}_top{TOP_FREQ}_{MODEL}_{SHOTS}shots_5seeds_results.csv'
-file_name = f'/home/yrazeghi/PHD/TYM/GPTAnalyzer/results/num{FREQ_NUM}_{WORD}_1to50_top{TOP_FREQ}_{MODEL}_{SHOTS}shots_5seeds_results.csv'
+# file_name = f'/home/XXXX/PHD/TYM/GPTAnalyzer/results/num{FREQ_NUM}_{WORD}_top{TOP_FREQ}_{MODEL}_{SHOTS}shots_5seeds_results.csv'
+file_name = f'/home/XXXX/PHD/TYM/GPTAnalyzer/results/num{FREQ_NUM}_{WORD}_1to50_top{TOP_FREQ}_{MODEL}_{SHOTS}shots_5seeds_results.csv'
 data_file = pd.read_csv(file_name)
 not_found = 0
 for i, row in data_file.iterrows():
