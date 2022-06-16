@@ -104,6 +104,16 @@ class ProcessedWindowNumCounter(NumCounter):
             list_of_tuples.append(tuple([*sorted([middle_number] + list(combs))]))
         return list_of_tuples
 
+    def arithmetic_pattern_counter(self, window: List[str]):
+        """
+        The pattern is (NUM WORD NUM WORD NUM) where the first num is the middle string in window
+        """
+        middle_pointer = len(window) // 2
+        if len(window) < middle_pointer + 1 + 4:
+            return []
+        if all(window[middle_pointer + x].isdecimal() for x in [0,2,4]):
+            return [tuple(window[middle_pointer + x] for x in [0,2,4])]
+        return []
 
 if __name__ == "__main__":
     text = "1 second *3 4 - 5 6 * 7 8 + 9 10  10:12 3.2     !!!!! 11  1234567  +minUte 1 MinutEs$Seconds 768 plus minutes 0909 653 725 78678675.9898 alaki @     776 seconds"
