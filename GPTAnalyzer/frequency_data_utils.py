@@ -152,7 +152,7 @@ class TimeUnitNum1ConvertFactory(CompleteFrequencyFactory):
 
 def create_complete_frequency_factory(factory_type: str):
     if factory_type == "Num1Mult" or factory_type == "Num1#*":
-        complete_frequency_factory = Num1MultiplyFactory(list(range(1, 51)), factory_type=factory_type)
+        complete_frequency_factory = Num1MultiplyFactory(list(range(0, 100)), factory_type=factory_type)
     elif factory_type == "Num2Mult":
         complete_frequency_factory = Num2MultiplyFactory(factory_type=factory_type)
     #check
@@ -162,7 +162,7 @@ def create_complete_frequency_factory(factory_type: str):
     elif factory_type == "Num1mode10#":
         complete_frequency_factory = Num1Mode10Factory(factory_type=factory_type)
     elif factory_type == "Num1Plus" or factory_type == "Num1#+":
-        complete_frequency_factory = Num1PlusFactory(list(range(1, 51)), factory_type=factory_type)
+        complete_frequency_factory = Num1PlusFactory(list(range(0, 100)), factory_type=factory_type)
     elif factory_type == "Num2Plus":
         complete_frequency_factory = Num2PlusFactory(factory_type=factory_type)
     elif factory_type == "Num1Less" or factory_type == "Num1More":
