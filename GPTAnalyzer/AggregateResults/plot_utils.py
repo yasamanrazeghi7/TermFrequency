@@ -1,15 +1,18 @@
+import pickle
 import random
 
 from sklearn.linear_model import LogisticRegression
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from tqdm import tqdm
+
 from logistic_regression import logistic
 from scipy.stats.mstats import mquantiles
 import scipy.stats
 import seaborn as sns
 import operator
-from typing import Callable, Any, List
+from typing import Callable, Any, List, Union, Tuple
 from functools import reduce
 
 TOP_FREQ = 200
@@ -22,10 +25,12 @@ FREQUENCY_DATA_KEY_X_COLUMN = 'testcase.data_point.frequency_data.key'
 FREQUENCY_DATA_KEY_XY_COLUMN = 'testcase.data_point.frequency_data.key_XY'
 FREQUENCY_DATA_KEY_XZ_COLUMN = 'testcase.data_point.frequency_data.key_XZ'
 FREQUENCY_DATA_KEY_YZ_COLUMN = 'testcase.data_point.frequency_data.key_YZ'
+FREQUENCY_DATA_KEY_XYZ_COLUMN = 'testcase.data_point.frequency_data.key_XYZ'
 FREQUENCY_X_VALUE_COLUMN = 'testcase.data_point.frequency_data.frequency'
 FREQUENCY_XY_VALUE_COLUMN = 'testcase.data_point.frequency_data.frequency_XY'
 FREQUENCY_XZ_VALUE_COLUMN = 'testcase.data_point.frequency_data.frequency_XZ'
 FREQUENCY_YZ_VALUE_COLUMN = 'testcase.data_point.frequency_data.frequency_YZ'
+FREQUENCY_XYZ_VALUE_COLUMN = 'testcase.data_point.frequency_data.frequency_XYZ'
 IS_CORRECT_COLUMN = 'is_correct'
 NO_WORD_KEYS = ['mult', 'plus', 'concat', 'plushashtag', 'multhashtag', 'compareless', 'comparemore']
 
@@ -65,47 +70,79 @@ class FrequencyCache:
     def __init__(self):
         self.frequency_dicts = {}
 
-    def get_frequency_dict(self, word: str):
-        file_name = "num_2_counting" if (word in NO_WORD_KEYS) else word
+    def get_file_name(self, word: str, number_of_keys: int = 1):
+        if word in NO_WORD_KEYS:
+            file_name = f"all_co{number_of_keys}_numbers.pkl"
+        else:
+            # The filename for other words like hour, decade
+            # TODO: provide filename for other words
+            file_name = ""
+        return file_name
+
+    def get_frequency_dict(self, word: str, number_of_keys: int = 1):
+        file_name = self.get_file_name(word, number_of_keys)
         if file_name in self.frequency_dicts:
             return self.frequency_dicts[file_name]
-        num2_freq_file_path = f"./num2_counts/{file_name}.txt"
-        frequency_dict = {}
-        with open(num2_freq_file_path) as f:
-            lines = f.readlines()
-            for index, line in enumerate(lines):
-                key, frequency = eval(line)
-                frequency_dict[key] = frequency
-                if (index + 1) % 10_000_000 == 0:
-                    print(f"I'm at index {index}, lines: {line}")
-        self.frequency_dicts[file_name] = frequency_dict
+        with open(f"./results5/frequencies/{file_name}", "rb") as f:
+            data = pickle.load(f)
+        self.frequency_dicts[file_name] = data
         return self.frequency_dicts[file_name]
+        # # TODO: Legacy code for words like hour, decade, etc.
+        # file_name = "num_2_counting" if (word in NO_WORD_KEYS) else word
+        # if file_name in self.frequency_dicts:
+        #     return self.frequency_dicts[file_name]
+        # num2_freq_file_path = f"./num2_counts/{file_name}.txt"
+        # frequency_dict = {}
+        # with open(num2_freq_file_path) as f:
+        #     lines = f.readlines()
+        #     for index, line in enumerate(lines):
+        #         key, frequency = eval(line)
+        #         frequency_dict[key] = frequency
+        #         if (index + 1) % 10_000_000 == 0:
+        #             print(f"I'm at index {index}, lines: {line}")
+        # self.frequency_dicts[file_name] = frequency_dict
 
 
 frequency_cache_singleton = FrequencyCache()
 
 
-def find_pair_frequency(row, first_column: str, second_column: str, word, my_frequency_cache: FrequencyCache):
-    not_found = 0
-    num_2_frequency = 0
-    min_val = min(str(row[first_column]), str(row[second_column]))
-    max_val = max(str(row[first_column]), str(row[second_column]))
-    if word in NO_WORD_KEYS:
-        tuple1 = (min_val, max_val)
-        tuple2 = (max_val, min_val)
+def find_frequency(row, columns: List[str], word: str, my_frequency_cache: FrequencyCache) -> (str, int, int):
+    frequency = not_found = 0
+    key_tuple = tuple(sorted([str(row[column]) for column in columns]))
+    # key_tuple = tuple([str(row[column]) for column in columns])
+    if len(key_tuple) == 1:
+        key_tuple = key_tuple[0]
+    if word not in NO_WORD_KEYS:
+        key_tuple = (*key_tuple, word)
+    freq_dict = my_frequency_cache.get_frequency_dict(word, number_of_keys= len(columns))
+    if key_tuple in freq_dict.keys():
+        frequency = freq_dict[key_tuple]
     else:
-        tuple1 = (min_val, max_val, word)
-        tuple2 = (max_val, min_val, word)
-    freq_dict = my_frequency_cache.get_frequency_dict(word)
-    if tuple2 in freq_dict.keys() and not (tuple1 == tuple2):
-        print(f"something is very wrong!!!!!!!!!!! tuple1: {tuple1} tuple2: {tuple2}")
-    if tuple1 in freq_dict.keys():
-        num_2_key = str(tuple1)
-        num_2_frequency = freq_dict[tuple1]
-    else:
-        num_2_key = str(tuple1)
         not_found = 1
-    return num_2_key, num_2_frequency, not_found
+    return str(key_tuple), frequency, not_found
+
+
+# def find_pair_frequency(row, first_column: str, second_column: str, word, my_frequency_cache: FrequencyCache):
+#     not_found = 0
+#     num_2_frequency = 0
+#     min_val = min(str(row[first_column]), str(row[second_column]))
+#     max_val = max(str(row[first_column]), str(row[second_column]))
+#     if word in NO_WORD_KEYS:
+#         tuple1 = (min_val, max_val)
+#         tuple2 = (max_val, min_val)
+#     else:
+#         tuple1 = (min_val, max_val, word)
+#         tuple2 = (max_val, min_val, word)
+#     freq_dict = my_frequency_cache.get_frequency_dict(word)
+#     if tuple2 in freq_dict.keys() and not (tuple1 == tuple2):
+#         print(f"something is very wrong!!!!!!!!!!! tuple1: {tuple1} tuple2: {tuple2}")
+#     if tuple1 in freq_dict.keys():
+#         num_2_key = str(tuple1)
+#         num_2_frequency = freq_dict[tuple1]
+#     else:
+#         num_2_key = str(tuple1)
+#         not_found = 1
+#     return num_2_key, num_2_frequency, not_found
 
 
 def extrap(x, y):
@@ -116,9 +153,26 @@ def extrap(x, y):
     intercept = y[0] - slope * x[0]
     return lambda x: slope * np.log(x) + intercept
 
+def replace_keys_for_symmetry(data_file):
+    copy_data_df = data_file.copy(deep=True)
+    copy_data_df.rename(columns={'testcase.data_point.frequency_data.x':'testcase.data_point.frequency_data.tmp_x'}, inplace=True)
+    copy_data_df.rename(columns={'testcase.data_point.frequency_data.y': 'testcase.data_point.frequency_data.x'}, inplace=True)
+    copy_data_df.rename(columns={'testcase.data_point.frequency_data.tmp_x': 'testcase.data_point.frequency_data.y'}, inplace=True)
+    copy_data_df.drop(copy_data_df[copy_data_df['testcase.data_point.frequency_data.y'] == copy_data_df['testcase.data_point.frequency_data.x']].index, inplace=True)
+    return_data_frame = pd.concat([data_file, copy_data_df], ignore_index=True)
+    return return_data_frame
+
 
 class PlotInfo:
-    def __init__(self, word: str, shots: int, model_key: str, key_type: str, my_frequency_cache: FrequencyCache = None):
+    def __init__(self,
+                 word: str,
+                 shots: int,
+                 model_key: str,
+                 key_type: str,
+                 my_frequency_cache: FrequencyCache = None,
+                 drop_zero_frequency: bool = True,
+                 use_filter: bool = False,
+                 make_symmetry: bool = False):
         """
 
         :param word:
@@ -133,6 +187,7 @@ class PlotInfo:
             'xy': (FREQUENCY_DATA_KEY_XY_COLUMN, FREQUENCY_XY_VALUE_COLUMN),
             'xz': (FREQUENCY_DATA_KEY_XZ_COLUMN, FREQUENCY_XZ_VALUE_COLUMN),
             'yz': (FREQUENCY_DATA_KEY_YZ_COLUMN, FREQUENCY_YZ_VALUE_COLUMN),
+            'xyz': (FREQUENCY_DATA_KEY_XYZ_COLUMN, FREQUENCY_XYZ_VALUE_COLUMN)
         }
         if key_type not in key_value_column_map:
             raise Exception(f"Wrong Key!, key must be one of {key_value_column_map.keys()}")
@@ -157,7 +212,7 @@ class PlotInfo:
         self.logistic_regression_pt = None
 
         if self.word in ['mult', 'plus', 'concat', 'plushashtag', 'multhashtag']:
-            file_name = f'./results5/results/num{FREQ_NUM}_{self.word}_1to50_top{TOP_FREQ}_{self.model_key}_{self.shots}shots_5seeds_results.csv'
+            file_name = f'./results6/results/num{FREQ_NUM}_{self.word}_top{TOP_FREQ}_{self.model_key}_{self.shots}shots_5seeds_results.csv'
         elif self.word in ['compareless', 'comparemore', 'comparemoreless']:
             file_name = f'./results5/results/num{FREQ_NUM}_{self.word}_1to100_top{TOP_FREQ}_{self.model_key}_{self.shots}shots_5seeds_results.csv'
         else:
@@ -165,34 +220,62 @@ class PlotInfo:
         self.data_file = pd.read_csv(file_name)
         self.data_file.replace(True, 1, inplace=True)
         self.data_file.replace(False, 0, inplace=True)
+        if make_symmetry:
+            print("before contatination::::", len(self.data_file))
+            self.data_file = replace_keys_for_symmetry(self.data_file)
+            print("after contatination::::", len(self.data_file))
         self.key_column, self.frequency_value_column = key_value_column_map[key_type]
-        if key_type != 'x':
-            if key_type == 'xy':
-                first_column = FREQUENCY_DATA_X_COLUMN
-                second_column = FREQUENCY_DATA_Y_COLUMN
-            elif key_type == 'xz':
-                first_column = FREQUENCY_DATA_X_COLUMN
-                second_column = FREQUENCY_DATA_Z_COLUMN
-            elif key_type == 'yz':
-                first_column = FREQUENCY_DATA_Y_COLUMN
-                second_column = FREQUENCY_DATA_Z_COLUMN
-            else:
-                raise Exception("Should not be here!")
-            total_not_found = 0
-            for i, row in self.data_file.iterrows():
-                new_key, new_frequency, not_found = find_pair_frequency(row=row,
-                                                                        first_column=first_column,
-                                                                        second_column=second_column,
-                                                                        word=self.word,
-                                                                        my_frequency_cache=my_frequency_cache)
-                self.data_file.at[i, self.key_column] = new_key
-                self.data_file.at[
-                    i, self.frequency_value_column] = new_frequency if new_frequency > 0 else random.random()
-                total_not_found += not_found
-            if total_not_found > 0:
-                print(f"Total Not Found for key {key_type} is {total_not_found}")
+        columns = []
+        if key_type == 'x':
+            columns = [FREQUENCY_DATA_X_COLUMN]
+        elif key_type == 'xy':
+            columns = [FREQUENCY_DATA_X_COLUMN, FREQUENCY_DATA_Y_COLUMN]
+        elif key_type == 'xz':
+            columns = [FREQUENCY_DATA_X_COLUMN, FREQUENCY_DATA_Z_COLUMN]
+        elif key_type == 'yz':
+            columns = [FREQUENCY_DATA_Y_COLUMN, FREQUENCY_DATA_Z_COLUMN]
+        elif key_type == 'xyz':
+            columns = [FREQUENCY_DATA_X_COLUMN, FREQUENCY_DATA_Y_COLUMN, FREQUENCY_DATA_Z_COLUMN]
+        if len(columns) == 0:
+            raise Exception("Should not be here!")
+        total_not_found = 0
+        filtered_indices = []
+        new_keys = []
+        new_freqs = []
+        for i, row in tqdm(self.data_file.iterrows()):
+            new_key, new_frequency, not_found = find_frequency(row=row,
+                                                                columns=columns,
+                                                                word=self.word,
+                                                                my_frequency_cache=my_frequency_cache)
+            if use_filter:
+                if any(int(row[c]) < 11 for c in [FREQUENCY_DATA_X_COLUMN, FREQUENCY_DATA_Y_COLUMN, FREQUENCY_DATA_Z_COLUMN]):
+                    filtered_indices.append(i)
+                    # new_frequency = -1
+                    # not_found = 1
+            if new_key.isdecimal():
+                new_key = np.int(new_key)
+            new_keys.append(new_key)
+            new_freqs.append(new_frequency if new_frequency > 0 else random.random()) # Add jitter if the frequency is zero
+            # self.data_file.at[i, self.key_column] = new_key
+            # self.data_file.at[
+            #     i, self.frequency_value_column] = new_frequency if new_frequency > 0 else random.random() # Add jitter if the frequency is zero
+            total_not_found += not_found
+        self.data_file[self.key_column] = new_keys
+        self.data_file[self.frequency_value_column] = new_freqs
+
+        # drop_threshold = 0
+        if use_filter:
+            self.data_file = self.data_file.drop(filtered_indices)
+        if drop_zero_frequency:
+            index = self.data_file.index
+            condition = self.data_file[self.frequency_value_column] < 1
+            indices_list = index[condition].tolist()
+            self.data_file = self.data_file.drop(indices_list)
+        if total_not_found > 0:
+            print(f"Total Not Found for key {key_type} is {total_not_found}")
+        print(f"Total rows: {len(self.data_file)}")
         self.aggregated_data_by_key = self.data_file.groupby(self.key_column)[
-            [IS_CORRECT_COLUMN, self.frequency_value_column]].mean()
+            [FREQUENCY_DATA_X_COLUMN, IS_CORRECT_COLUMN, self.frequency_value_column]].mean()
 
     def calculate_spearman(self):
         spearman_correlation = self.aggregated_data_by_key.corr(method='spearman')
@@ -314,12 +397,20 @@ def save_freq_acc_plot_and_get_info(
     plot_scatters: bool = True,
     plot_bar: bool = True,
     plot_err: bool = True,
+        use_filter: bool = False,
+        drop_zero_frequency: bool = True,
+        make_symmetry: bool = False
 ):
     if important_points is None:
         important_points = []
         
     # Create PlotInfo
-    plot_info = PlotInfo(word, shots, model, key_type=key)
+    plot_info = PlotInfo(word, shots, model,
+                         key_type=key,
+                         my_frequency_cache=None,
+                         drop_zero_frequency=drop_zero_frequency,
+                         use_filter=use_filter,
+                         make_symmetry=make_symmetry)
     plot_info.calculate_spearman()
     plot_info.quantile_accuracies_plot(q_num=quantile_number)
     plot_info.calculate_logistic_regression()
@@ -371,10 +462,11 @@ def save_freq_acc_plot_and_get_info(
                     scatter_kws={"color": COLORS[0], "s": 5},
                     x_jitter=0.01, y_jitter=0.01)
 
-    if important_points:
+    if important_points and plot_info.key == 'x':
         my_new_data_frame = {x: [], y: [], 'label': []}
         for index, row in data_params.iterrows():
-            if index in important_points:
+            # if index in important_points:
+            if int(row[FREQUENCY_DATA_X_COLUMN]) in important_points:
                 my_new_data_frame[x].append(row[x])
                 my_new_data_frame[y].append(row[y])
                 label = " ".join(str(q) for q in convert_any(index, plot_info.word not in NO_WORD_KEYS))
