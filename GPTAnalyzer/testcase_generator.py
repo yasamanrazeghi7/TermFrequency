@@ -12,7 +12,6 @@ from os import path
 
 from transformers import GPTJForCausalLM, AutoTokenizer, GPTNeoForCausalLM
 
-
 import utils
 import frequency_data_utils
 from datapoint_utils import DataPointGenerator, DigitLimitFilter
@@ -51,7 +50,8 @@ def GPTJ_Analysis(model, tokenizer, device, batch_size: int, testcases: List[Tes
         input_ids = tokenizer.batch_encode_plus(testcases_bodies, padding=True, return_tensors='pt').to(device)
         with torch.no_grad():
             generated_ids = model.generate(input_ids=input_ids['input_ids'], attention_mask=input_ids['attention_mask'],
-                                           max_length=5 + len(input_ids['input_ids'][0]), do_sample=False, min_length=2) #TODO think about the max len
+                                           max_length=5 + len(input_ids['input_ids'][0]), do_sample=False,
+                                           min_length=2)  # TODO think about the max len
         generated_texts = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
         generated_answers = [x[len(testcases_bodies[i]) + 1:].split()[0] for i, x in enumerate(generated_texts)]
         for (tc, ans) in zip(testcase_chunk, generated_answers):
@@ -84,7 +84,7 @@ def main(args):
     model, tokenizer = setup_model(device, args.model)
     logger.info("Model is loaded!")
 
-    #check output file
+    # check output file
     if path.exists(args.output_path) and args.overwrite:
         logger.info("overwrites the output file")
         open(args.output_path, 'w').close()
@@ -106,15 +106,24 @@ def main(args):
     # ----- Read frequency data  -------
     frequency_data_map = {}
     for factory_type in factory_types:
-        frequency_data = []
-        complete_frequency_factory = frequency_data_utils.create_complete_frequency_factory(factory_type)
-        input_path = args.input_path
-        logger.debug(f"The input path is '{input_path}'")
-        my_file = utils.read_frequency_file(input_path)
-        for line in my_file.split("\n")[:args.top]:
-            key, frequency = eval(line)
-            frequency_data.extend(complete_frequency_factory.build(key, frequency))
-        frequency_data_map[factory_type] = frequency_data
+        if args.ignore_frequency:
+            frequency_data = []
+            complete_frequency_factory = frequency_data_utils.create_complete_frequency_factory(factory_type)
+            for x in range(0, 100):
+                key = str(x)
+                frequency_data.extend(complete_frequency_factory.build(key, 100))
+            frequency_data_map[factory_type] = frequency_data
+        else:
+            frequency_data = []
+            complete_frequency_factory = frequency_data_utils.create_complete_frequency_factory(factory_type)
+            input_path = args.input_path
+            logger.debug(f"The input path is '{input_path}'")
+            my_file = utils.read_frequency_file(input_path)
+            for line in my_file.split("\n")[:args.top]:
+                key, frequency = eval(line)
+                frequency_data.extend(complete_frequency_factory.build(key, frequency))
+            frequency_data_map[factory_type] = frequency_data
+
     logger.info(f"Reading is done! Total Complete Frequency Data: {sum(len(x) for x in frequency_data_map.values())}")
     # logger.debug("A sample of complete frequency data:")
     # logger.debug("\n".join(str(x) for x in frequency_data[:40]))
@@ -130,15 +139,15 @@ def main(args):
                 .add_template(factory_type) \
                 .generate(frequency_data)
             logger.info(f"Generated {len(data_points)} data points!")
-            logger.debug("A sample of data points:")
-            logger.debug("\n".join(str(x) for x in data_points[:40]))
+            logger.info("A sample of data points:")
+            logger.info("\n".join(str(x) for x in data_points[:40]))
             list_of_data_points.append(data_points)
         # # ----------------------------------
         # # -----  Generate TestCases  -------
         testcase_template = TestCaseTemplate("Q:", "A:", None)
         testcases = special_testcase_generator(list_of_data_points, testcase_template, args.shots)
-        logger.error(f"A sample of test cases, Total {len(testcases)}:")
-        logger.debug("\n------\n".join(x.body for x in testcases[:3]))
+        logger.info(f"A sample of test cases, Total {len(testcases)}:")
+        logger.info("\n------\n".join(x.body for x in testcases[:3]))
         # ----------------------------------
         # --------  GPTJ Analysis  ---------
         results = GPTJ_Analysis(model, tokenizer, device, args.bs, testcases)
@@ -158,15 +167,17 @@ def main(args):
             DataFrame(aggregate_by_key(results)).to_csv(f, mode='a', header=f.tell() == 0)
         logger.info(f"The final result is written in '{args.output_path}'")
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--input-path', type=str, required=True,
                         help="The s3 or local path to the aggregated result")
     parser.add_argument('--output-path', type=str, required=True, help="The local path to write the output")
     parser.add_argument('--overwrite', action='store_true', help='if specified, overwrites the output file')
-    parser.add_argument('--append-output', action='store_true', help='if specified, appends to the existing output file')
+    parser.add_argument('--append-output', action='store_true',
+                        help='if specified, appends to the existing output file')
     parser.add_argument('--factory-type', type=str, default="Num1")
-    parser.add_argument('--dp-template', type=str, default="Mult") # Todo: currently not using this check if needed
+    parser.add_argument('--dp-template', type=str, default="Mult")  # Todo: currently not using this check if needed
     parser.add_argument('--number-of-seeds', type=int, default=5)
     parser.add_argument('--bs', type=int, default=50, help="Batch size")
     parser.add_argument('--shots', type=int, default=2)
@@ -174,6 +185,7 @@ if __name__ == "__main__":
     parser.add_argument('--top', type=int, default=200, help="Filter the top frequent data")
     parser.add_argument('--local_rank', type=int)
     parser.add_argument('--model', type=str, default='GPT-J', help="model-name")
+    parser.add_argument('--ignore_frequency', action='store_true', help='if specified, does not query frequency')
 
     args = parser.parse_args()
 
